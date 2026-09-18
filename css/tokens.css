@@ -1,0 +1,91 @@
+/* ===========================================================================
+   RESTON RACING — DESIGN TOKENS
+   Every colour, easing and rhythm value in the site resolves through here, so
+   a future theme change is a single-file edit.
+   =========================================================================== */
+
+:root{
+  /* ---- brand · POLISHED CHAMPAGNE METALLIC GOLD ----------------------
+     A five-stop machined ramp with real contrast between shadow and catch —
+     deep bronze, champagne body, polished highlight, near-white specular.
+     Surfaces are painted with --metal-h / --metal-v so gold reads as metal;
+     small gold type takes the body tone.                                  */
+  /* Measured on screen, not chosen on a swatch. The previous body rendered at
+     42% saturation / 90% value — bright, but too low in chroma to read as gold
+     on a 1px rule, so it looked like cream. The body now carries 62% chroma at
+     the same brightness, and the royal midtone is 10 points brighter so it is
+     visible rather than implied. Hue is held at 40-41deg throughout: gold, not
+     orange (30deg) and not mustard (48deg+). */
+  --rr-red-deep:       #8c5f12;   /* rich deep gold shadow   s87 v55 */
+  --rr-gold-mid:       #d9a32e;   /* ROYAL GOLD midtone      s79 v85 */
+  --rr-red:            #f0c85c;   /* champagne body          s62 v94 */
+  --rr-red-bright:     #fbe6a8;   /* polished highlight      s33 v98 */
+  --rr-red-ember:      #fffbef;   /* thin warm specular             */
+
+  /* deep shadow -> royal gold -> champagne body -> a 3% specular -> return.
+     The pale band is deliberately narrow: widen it and the metal turns white,
+     which is the other way to lose the gold. */
+  --metal-h: linear-gradient(100deg,
+      var(--rr-red-deep) 0%,var(--rr-gold-mid) 14%,var(--rr-red) 33%,
+      var(--rr-red-bright) 46%,var(--rr-red-ember) 50%,var(--rr-red-bright) 54%,
+      var(--rr-red) 67%,var(--rr-gold-mid) 86%,var(--rr-red-deep) 100%);
+  --metal-v: linear-gradient(180deg,
+      var(--rr-red-deep) 0%,var(--rr-gold-mid) 15%,var(--rr-red) 34%,
+      var(--rr-red-bright) 47%,var(--rr-red-ember) 50%,var(--rr-red-bright) 53%,
+      var(--rr-red) 66%,var(--rr-gold-mid) 85%,var(--rr-red-deep) 100%);
+
+  /* ---- royal PETROL teal, on a near-black foundation -------------------
+     The hierarchy is NEAR BLACK -> DEEP PETROL -> ROYAL TEAL ACCENT. Large
+     areas stay close to black; teal arrives through atmosphere, gradients,
+     transparency and edge light — never as a flat green field.            */
+  --rr-teal:           #0b4150;   /* royal accent                */
+  --rr-teal-deep:      #072834;
+  --rr-teal-ink:       #041920;
+  --rr-teal-lift:      #12667a;   /* edge light only             */
+  --rr-teal-veil:      rgba(11,65,80,.55);
+
+  /* ---- surfaces · cockpit at night ------------------------------------ */
+  --rr-void:           #020b0f;
+  --rr-bg:             #03141a;
+  --rr-bg-raised:      #052029;
+  --rr-paper:          #f2efe6;
+  --rr-ink:            #04181f;
+
+  /* ---- text ----------------------------------------------------------- */
+  --rr-text:           #f2efe6;
+  --rr-text-dim:       #8ea7b0;
+  --rr-text-faint:     #56737d;
+
+  /* ---- lines & overlays ----------------------------------------------- */
+  --rr-line:           rgba(233,186,80,.44);
+  --rr-line-strong:    rgba(240,200,92,.88);
+  --rr-line-teal:      rgba(18,102,122,.34);
+  --rr-scrim:          rgba(2,17,22,.80);
+  --rr-scrim-soft:     rgba(2,17,22,.50);
+
+  /* ---- motion ---------------------------------------------------------- */
+  /* one family of curves keeps every transition feeling like the same site */
+  --ease-drive:        cubic-bezier(.22,.61,.36,1);   /* accelerate → settle  */
+  --ease-launch:       cubic-bezier(.65,0,.35,1);     /* symmetrical power    */
+  --ease-snap:         cubic-bezier(.16,1,.3,1);      /* fast arrival         */
+  --ease-out-fast:     cubic-bezier(.2,.8,.2,1);
+
+  --t-hover:           .28s;
+  --t-chapter:         .92s;
+  --t-menu:            .78s;
+
+  /* ---- layout ---------------------------------------------------------- */
+  --gutter:            clamp(26px, 4.2vw, 82px);
+  --header-h:          clamp(74px, 8.6vh, 104px);
+
+  /* uniform content scale — set by js from viewport height, never stretched */
+  --u:                 1;
+
+  --z-plate:   0;
+  --z-art:     1;
+  --z-content: 3;
+  --z-chrome:  40;
+  --z-menu:    60;
+  --z-boot:    90;
+  --z-cursor:  100;
+}

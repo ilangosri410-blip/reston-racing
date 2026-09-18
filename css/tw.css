@@ -1,0 +1,72 @@
+/* ===========================================================================
+   MOBILE UTILITY LAYER — GENERATED FILE, DO NOT EDIT BY HAND
+   Regenerate with:  node build-mobile-css.js
+   ---------------------------------------------------------------------------
+   Utility-first (Tailwind vocabulary), emitted just-in-time from the classes
+   actually present in index.html, and wrapped in the project's phone query so
+   the approved desktop design cannot be reached by any rule in this file.
+   Colours resolve CSS custom properties, so one set of mobile markup serves
+   both the dark and the light theme.
+   =========================================================================== */
+@media (max-width:760px),(max-height:520px) and (orientation:landscape){
+  .block{display:block}
+  .flex{display:flex}
+  .font-bold{font-weight:700}
+  .gap-1\.5{gap:6px}
+  .gap-2{gap:8px}
+  .gap-2\.5{gap:10px}
+  .gap-4{gap:16px}
+  .gap-5{gap:20px}
+  .gap-x-6{column-gap:24px}
+  .gap-y-4{row-gap:16px}
+  .grid{display:grid}
+  .grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .h-1{height:4px}
+  .h-2{height:8px}
+  .h-2\.5{height:10px}
+  .inline-flex{display:inline-flex}
+  .items-baseline{align-items:baseline}
+  .items-center{align-items:center}
+  .justify-between{justify-content:space-between}
+  .max-w-\[30ch\]{max-width:30ch}
+  .max-w-\[32ch\]{max-width:32ch}
+  .max-w-\[38ch\]{max-width:38ch}
+  .mt-1{margin-top:4px}
+  .mt-1\.5{margin-top:6px}
+  .mt-2{margin-top:8px}
+  .mt-2\.5{margin-top:10px}
+  .mt-3{margin-top:12px}
+  .mt-4{margin-top:16px}
+  .mt-5{margin-top:20px}
+  .mt-6{margin-top:24px}
+  .mx-5{margin-left:20px;margin-right:20px}
+  .not-italic{font-style:normal}
+  .overflow-x-auto{overflow-x:auto;overflow-y:hidden}
+  .overflow-y-auto{overflow-y:auto;overflow-x:hidden}
+  .pb-1{padding-bottom:4px}
+  .pb-6{padding-bottom:24px}
+  .pt-4{padding-top:16px}
+  .px-4{padding-left:16px;padding-right:16px}
+  .px-5{padding-left:20px;padding-right:20px}
+  .py-2\.5{padding-top:10px;padding-bottom:10px}
+  .py-3\.5{padding-top:14px;padding-bottom:14px}
+  .shrink-0{flex-shrink:0}
+  .snap-mandatory{scroll-snap-type:x mandatory}
+  .snap-start{scroll-snap-align:start}
+  .snap-x{scroll-snap-type:x mandatory}
+  .text-\[9px\]{font-size:9px}
+  .text-card{font-size:12.5px;line-height:1.15;letter-spacing:.06em}
+  .text-dim{color:var(--rr-text-dim)}
+  .text-gold{color:var(--rr-red)}
+  .text-ink{color:var(--rr-text)}
+  .text-line{font-size:13px;line-height:1.55;letter-spacing:.005em}
+  .text-micro{font-size:9.5px;line-height:1.3;letter-spacing:.18em}
+  .text-note{font-size:10.5px;line-height:1.45;letter-spacing:.01em}
+  .text-right{text-align:right}
+  .tracking-\[\.12em\]{letter-spacing:.12em}
+  .tracking-\[\.16em\]{letter-spacing:.16em}
+  .uppercase{text-transform:uppercase}
+  .w-2\.5{width:10px}
+  .w-\[152px\]{width:152px}
+  .w-\[166px\]{width:166px}
+}

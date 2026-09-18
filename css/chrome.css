@@ -1,0 +1,925 @@
+/* ===========================================================================
+   PERSISTENT INTERFACE — header, rail, pager, menu, cursor, boot, reader
+   =========================================================================== */
+
+/* ══════════════════════════════ HEADER ═══════════════════════════════════ */
+.chrome{
+  position:absolute;top:0;left:0;right:0;z-index:var(--z-chrome);
+  height:var(--header-h);
+  display:flex;align-items:center;gap:clamp(14px,2vw,34px);
+  padding:0 clamp(18px,2.2vw,40px) 0 clamp(14px,1.6vw,30px);
+  pointer-events:none;
+}
+.chrome>*{pointer-events:auto}
+.chrome::before{
+  content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(3,27,32,.94) 0%,rgba(3,23,27,.56) 48%,rgba(3,23,27,0) 100%);
+  border-bottom:1px solid rgba(240,200,92,.38);
+  opacity:0;transition:opacity .5s var(--ease-drive);
+}
+body[data-chapter]:not([data-chapter="0"]) .chrome::before{opacity:1}
+
+.brand{display:block;flex:none;line-height:0;padding:0 clamp(8px,.9vw,18px)}
+.brand img{
+  height:clamp(58px,7.6vh,92px);width:auto;
+  max-height:calc(var(--header-h) - 2px);
+  /* Integration, not decoration. The mark sits smaller with real negative
+     space around it and carries a tight directional shade instead of a plate:
+     no card, no rectangle, no disc, no glow. */
+  filter:drop-shadow(0 1px 1px rgba(1,9,12,.95))
+         drop-shadow(0 4px 14px rgba(1,9,12,.70));
+  transition:transform .5s var(--ease-snap),filter .5s var(--ease-drive);
+}
+.brand:hover img{transform:translateX(3px) scale(1.015)}
+
+.topnav{
+  position:relative;
+  flex:1;display:flex;align-items:center;justify-content:center;
+  gap:clamp(12px,2vw,38px);
+  transition:opacity .5s var(--ease-drive),transform .5s var(--ease-drive);
+}
+.topnav a{
+  position:relative;
+  font-size:clamp(10.5px,.86vw,14px);font-weight:700;letter-spacing:.04em;
+  color:var(--rr-text-dim);white-space:nowrap;
+  transform:scaleX(.86);
+  transition:color .3s var(--ease-drive);
+}
+.topnav a::after{
+  content:'';position:absolute;left:0;right:100%;bottom:-9px;height:2px;
+  background:var(--rr-red);transition:right .42s var(--ease-drive);
+}
+.topnav a:hover{color:var(--rr-text)}
+.topnav a:hover::after{right:0}
+.topnav a.is-active{color:var(--rr-red)}
+.topnav a.is-active::after{right:0}
+/* ── CHAPTER NAVIGATION · COMPACT ─────────────────────────────────────────
+   Same menu, same items, same labels, same order. The home poster keeps the
+   nav at full weight because it is the landing page; chapters 02-07 run it
+   ~17% smaller so the chapter's own content owns the frame. The header
+   already reserved this space (the nav was only faded out, never removed),
+   so nothing reflows when it appears. */
+body:not([data-chapter="0"]) .topnav{
+  opacity:1;transform:none;pointer-events:auto;
+  gap:clamp(10px,1.62vw,31px);
+}
+body:not([data-chapter="0"]) .topnav a{
+  font-size:clamp(8.7px,.71vw,11.6px);
+  opacity:.68;
+  transform:scaleX(.86) translateY(0);
+  transition:color .22s var(--ease-out-fast),
+             opacity .22s var(--ease-out-fast),
+             transform .22s var(--ease-out-fast);
+}
+body:not([data-chapter="0"]) .topnav a:hover{opacity:.9}
+body:not([data-chapter="0"]) .topnav a.is-active{
+  opacity:1;
+  transform:scaleX(.86) translateY(-3px);
+}
+/* one shared indicator instead of seven per-item wipes, so a single machined
+   rule travels to the chapter you land on. The hero keeps its own wipe. */
+body:not([data-chapter="0"]) .topnav a::after{
+  opacity:0;
+  transition:right .42s var(--ease-drive),opacity .2s var(--ease-out-fast);
+}
+/* …but the pointer still needs to be able to READ the menu before committing
+   to a chapter. The shared indicator marks where you ARE; this marks where
+   the POINTER is, and the two never sit on the same link — the active item is
+   excluded, because .nav-ink already underlines it. Same rule, same gold, same
+   2px as the indicator, re-aligned to the indicator's own baseline so both
+   read as one line. Gated to devices that genuinely have a pointer, so a
+   touch screen can never strand one lit. */
+@media (hover:hover) and (pointer:fine){
+  body:not([data-chapter="0"]) .topnav a:not(.is-active):hover::after{
+    opacity:1;bottom:-8px;
+  }
+}
+.nav-ink{
+  position:absolute;left:0;bottom:-8px;
+  width:0;height:2px;
+  background:var(--metal-h);
+  box-shadow:0 0 0 .5px rgba(2,16,19,.55);
+  opacity:0;pointer-events:none;
+  transition:transform .22s var(--ease-out-fast),
+             width .22s var(--ease-out-fast),
+             opacity .18s var(--ease-out-fast);
+}
+body:not([data-chapter="0"]) .nav-ink{opacity:1}
+/* the catch-light on the indicator: one thin specular pass as it settles */
+.nav-ink::after{
+  content:'';position:absolute;inset:0;width:38%;
+  background:linear-gradient(90deg,
+    rgba(255,251,239,0),rgba(255,251,239,.85),rgba(255,251,239,0));
+  transform:translateX(-140%);opacity:0;
+}
+body:not([data-chapter="0"]) .nav-ink.is-set::after{
+  animation:navInkCatch .52s var(--ease-out-fast) 1;
+}
+@keyframes navInkCatch{
+  0%{transform:translateX(-140%);opacity:0}
+  22%{opacity:1}
+  100%{transform:translateX(300%);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .nav-ink,body:not([data-chapter="0"]) .topnav a{transition:none}
+  body:not([data-chapter="0"]) .topnav a.is-active{transform:scaleX(.86)}
+  body:not([data-chapter="0"]) .nav-ink.is-set::after{animation:none}
+}
+
+.chrome-right{display:flex;align-items:center;gap:clamp(10px,1.2vw,20px);flex:none;margin-left:auto}
+.chapter-tag{
+  display:flex;align-items:center;gap:9px;
+  font-size:12.5px;font-weight:700;letter-spacing:.16em;color:var(--rr-text-dim);
+  opacity:0;transform:translateX(10px);
+  transition:opacity .5s var(--ease-drive),transform .5s var(--ease-drive);
+}
+body:not([data-chapter="0"]) .chapter-tag{opacity:1;transform:none}
+.chapter-tag em{font-style:normal;color:var(--rr-red)}
+.chapter-tag i{width:16px;height:1px;background:var(--rr-line-strong)}
+.btn-register{flex:none}
+
+.menu-btn{
+  position:relative;width:44px;height:34px;flex:none;
+  display:flex;flex-direction:column;justify-content:center;gap:6px;
+  padding:0 5px;
+}
+.menu-btn span{
+  display:block;height:2px;background:var(--rr-red);transform-origin:right center;
+  transition:transform .46s var(--ease-snap),width .46s var(--ease-snap),
+             background .3s var(--ease-drive);
+}
+.menu-btn span:nth-child(1){width:100%}
+.menu-btn span:nth-child(2){width:66%;margin-left:auto}
+.menu-btn span:nth-child(3){width:84%;margin-left:auto}
+.menu-btn:hover span{background:var(--rr-red)}
+.menu-btn:hover span:nth-child(2){width:100%}
+.menu-btn:hover span:nth-child(3){width:100%}
+body.menu-open .menu-btn span:nth-child(1){transform:translateY(8px) rotate(-45deg)}
+body.menu-open .menu-btn span:nth-child(2){opacity:0;transform:translateX(14px)}
+body.menu-open .menu-btn span:nth-child(3){width:100%;transform:translateY(-8px) rotate(45deg)}
+
+/* ═══════════════════════════ HOME CONTROL ════════════════════════════════ */
+.home-ctl{
+  position:absolute;left:clamp(16px,2vw,34px);bottom:clamp(20px,4vh,42px);
+  z-index:var(--z-chrome);
+  display:flex;align-items:center;gap:9px;
+  padding:10px 16px 10px 11px;
+  border:1px solid var(--rr-line);background:rgba(4,28,32,.88);
+  font-size:10.5px;font-weight:700;letter-spacing:.2em;color:var(--rr-text);
+  opacity:0;transform:translateX(-14px);pointer-events:none;
+  transition:opacity .5s var(--ease-drive),transform .5s var(--ease-drive),
+             border-color .3s,background .3s;
+}
+body:not([data-chapter="0"]) .home-ctl{opacity:1;transform:none;pointer-events:auto}
+.home-ctl svg{width:15px;height:15px;transition:transform .4s var(--ease-snap)}
+.home-ctl:hover{border-color:var(--rr-red);background:rgba(240,200,92,.318)}
+.home-ctl:hover svg{transform:translateX(-4px)}
+
+/* ══════════════════════════ CHAPTER RAIL ═════════════════════════════════ */
+/* doubles as the fuel/progress read-out for the whole experience */
+.rail{
+  position:absolute;right:clamp(14px,1.5vw,26px);top:50%;transform:translateY(-50%);
+  z-index:var(--z-chrome);
+  display:flex;align-items:center;gap:14px;flex-direction:row-reverse;
+  opacity:0;transition:opacity .6s var(--ease-drive);
+}
+body[data-booted] .rail{opacity:1}
+
+/* a breath of teal shade behind the marks, masked to an ellipse so it dissolves
+   on every side. No border, no blur, no panel — the footage reads straight
+   through it. */
+.rail::before{
+  content:'';position:absolute;inset:-34px -18px -34px -34px;z-index:-1;
+  background:linear-gradient(90deg,
+    rgba(3,20,24,0) 0%,rgba(3,20,24,.10) 48%,rgba(3,20,24,.20) 100%);
+  -webkit-mask-image:radial-gradient(118% 90% at 100% 50%,#000 42%,transparent 100%);
+          mask-image:radial-gradient(118% 90% at 100% 50%,#000 42%,transparent 100%);
+  pointer-events:none;
+}
+
+/* the spine: a hairline the whole height, filled in gold to the current
+   chapter, with a machined knob riding the fill head */
+.rail-fuel{
+  position:relative;display:block;width:2px;height:clamp(196px,33vh,320px);
+  background:linear-gradient(180deg,
+    rgba(92,71,38,.26),rgba(140,95,18,.783) 20%,rgba(217,163,46,.92) 42%,
+    rgba(251,230,168,.72) 52%,rgba(217,163,46,.92) 64%,
+    rgba(140,95,18,.783) 84%,rgba(92,71,38,.26));
+  overflow:hidden;
+}
+/* light travelling down the machined spine — one slow pass, long rest */
+.rail-fuel::after{
+  content:'';position:absolute;left:0;right:0;height:26%;
+  background:linear-gradient(180deg,
+    rgba(255,251,239,0),rgba(255,251,239,.95),rgba(255,251,239,0));
+  transform:translateY(-140%);opacity:0;
+  animation:railSpine 8.4s linear infinite;
+}
+/* one slow pass of light along polished metal: it fades up, travels at a
+   constant rate and fades out, so there is no pop at either end */
+@keyframes railSpine{
+  0%,60%{transform:translateY(-130%);opacity:0}
+  66%{opacity:.5}
+  80%{opacity:1}
+  93%{opacity:.45}
+  100%{transform:translateY(500%);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){.rail-fuel::after{animation:none;opacity:0}}
+.rail-fuel i{
+  position:absolute;left:0;top:0;width:100%;height:0;
+  background:linear-gradient(180deg,var(--rr-red-ember),var(--rr-red) 40%,var(--rr-red-deep));
+  /* duration is set per jump from JS so the line and the diamonds travel
+     together — one step is brisk, a six-chapter jump takes its time */
+  /* one smooth, symmetric fill — no per-jump duration, no stagger, nothing
+     to stutter. This is the rail's only state animation. */
+  transition:height .82s cubic-bezier(.42,0,.58,1);
+}
+.rail-fuel i::after{
+  content:'';position:absolute;left:50%;bottom:0;
+  width:11px;height:11px;margin:0 0 -5.5px -5.5px;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,var(--rr-red-ember),var(--rr-red) 62%,var(--rr-red-deep));
+  box-shadow:0 0 0 1px rgba(3,20,24,.55),0 2px 6px rgba(0,0,0,.55);
+}
+
+.rail ol{list-style:none;display:flex;flex-direction:column;gap:clamp(15px,2.5vh,27px)}
+.rail li{display:flex;align-items:center;justify-content:flex-end}
+
+.rail button{
+  position:relative;
+  display:flex;align-items:center;gap:11px;
+  font-size:11.5px;font-weight:700;letter-spacing:.14em;
+  color:var(--rr-text-faint);
+  transition:color .32s var(--ease-drive);
+}
+/* the label is out of flow, so the numeral/marker spine never shifts sideways
+   when the current chapter's name appears */
+.rail button em{
+  position:absolute;right:100%;top:50%;margin-right:13px;
+  font-style:normal;white-space:nowrap;color:var(--rr-text);
+  opacity:0;transform:translateY(-50%) translateX(8px);
+  text-shadow:0 0 11px rgba(2,17,20,.95),0 0 5px rgba(2,17,20,.92),0 1px 3px rgba(0,0,0,.9);
+  transition:opacity .34s var(--ease-drive),transform .34s var(--ease-drive);
+}
+/* the current chapter's name is underscored in gold, as in the reference */
+.rail li.is-here button em::after{
+  content:'';position:absolute;left:0;right:0;bottom:-6px;height:1px;
+  background:var(--rr-red);
+}
+.rail button i{
+  position:relative;overflow:hidden;
+  display:block;width:22px;height:1.5px;background:currentColor;flex:none;
+  transition:width .34s var(--ease-snap),background .32s var(--ease-drive);
+}
+.rail-num{
+  font-size:12.2px;font-weight:700;letter-spacing:.1em;
+  font-variant-numeric:tabular-nums;
+  opacity:.66;
+  text-shadow:0 0 9px rgba(2,17,20,.92),0 0 4px rgba(2,17,20,.9),0 1px 2px rgba(0,0,0,.85);
+  transition:opacity .32s var(--ease-drive),color .32s var(--ease-drive),
+             font-size .34s var(--ease-snap);
+}
+.rail button:hover{color:var(--rr-text)}
+.rail button:hover em{opacity:1;transform:translateY(-50%)}
+.rail button:hover i{width:30px}
+.rail button:hover .rail-num{opacity:.92}
+
+/* the current chapter: the numeral steps up in scale and takes the teal
+   highlight, the marker lengthens into gold, the name stays on */
+.rail li.is-here button{color:var(--rr-red)}
+.rail li.is-here button i{
+  width:44px;height:2px;
+  background:var(--metal-h);
+}
+.rail li.is-here button em{opacity:1;transform:translateY(-50%)}
+.rail li.is-here .rail-num{
+  opacity:1;font-size:25px;letter-spacing:.02em;
+  color:var(--rr-red-bright);
+  text-shadow:0 0 15px rgba(240,200,92,.845),0 1px 3px rgba(0,0,0,.85);
+}
+/* one slow highlight crosses the active marker — restrained, and the first
+   thing to go when motion is not wanted */
+.rail li.is-here button i::after{
+  content:'';position:absolute;inset:0;width:42%;
+  background:linear-gradient(90deg,
+    rgba(255,251,239,0),rgba(255,251,239,.92),rgba(255,251,239,0));
+  transform:translateX(-160%);opacity:0;
+  animation:railGlare 7.2s linear infinite;
+}
+@keyframes railGlare{
+  0%,64%{transform:translateX(-150%);opacity:0}
+  70%{opacity:.55}
+  82%{opacity:1}
+  94%{opacity:.4}
+  100%{transform:translateX(320%);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .rail li.is-here button i::after{animation:none;opacity:0}
+}
+
+/* ═════════════════════════ PREV / NEXT PAGER ═════════════════════════════ */
+.pager{
+  position:absolute;bottom:clamp(20px,4vh,42px);z-index:var(--z-chrome);
+  display:flex;align-items:center;gap:12px;
+  color:var(--rr-text-dim);
+  transition:color .3s var(--ease-drive),opacity .45s var(--ease-drive);
+}
+.pager svg{width:40px;height:12px}
+.pager:hover{color:var(--rr-red-bright)}
+.pager-prev{left:clamp(150px,15vw,240px)}
+.pager-next{right:clamp(58px,6.5vw,110px);flex-direction:row}
+.pager-label{
+  font-size:10.5px;font-weight:700;letter-spacing:.2em;
+  transition:transform .42s var(--ease-drive);
+}
+.pager-next:hover .pager-label{transform:translateX(-5px)}
+.pager-next:hover svg{transform:translateX(5px)}
+.pager-prev:hover svg{transform:translateX(-5px)}
+.pager svg{transition:transform .42s var(--ease-snap)}
+.pager.is-off{opacity:0;pointer-events:none}
+body[data-chapter="0"] .pager-prev{opacity:0;pointer-events:none}
+
+/* ═══════════════════════════ VERTICAL MENU ═══════════════════════════════ */
+.menu{
+  position:absolute;inset:0;z-index:var(--z-menu);
+  pointer-events:none;visibility:hidden;
+  transition:visibility 0s linear var(--t-menu);
+}
+body.menu-open .menu{pointer-events:auto;visibility:visible;transition-delay:0s}
+
+/* the panel arrives as a machined vane: a red blade leads, the panel follows */
+.menu-vane{
+  position:absolute;top:0;bottom:0;right:0;
+  width:min(430px,34vw);
+  background:linear-gradient(180deg,var(--rr-red),var(--rr-red-deep));
+  transform:translateX(101%) skewX(-3deg);
+  transform-origin:top right;
+  transition:transform .58s var(--ease-launch);
+}
+body.menu-open .menu-vane{transform:translateX(0) skewX(0deg);transition-duration:.5s}
+.menu-panel{
+  position:absolute;top:0;bottom:0;right:0;
+  width:min(430px,34vw);
+  background:
+    radial-gradient(120% 78% at 100% 0%,rgba(12,63,74,.40),transparent 60%),
+    linear-gradient(200deg,#062127 0%,#031418 62%,#020e11 100%);
+  border-left:1px solid var(--rr-line-strong);
+  padding:calc(var(--header-h) + 3vh) clamp(24px,2.4vw,44px) clamp(26px,4vh,48px);
+  display:flex;flex-direction:column;
+  transform:translateX(100%);
+  transition:transform .62s var(--ease-launch);
+}
+body.menu-open .menu-panel{transform:none;transition-delay:.08s}
+/* dim the deck behind without a heavy animated blur */
+.menu::before{
+  content:'';position:absolute;inset:0;background:rgba(2,14,17,.70);
+  opacity:0;transition:opacity .5s var(--ease-drive);
+}
+body.menu-open .menu::before{opacity:1}
+
+.menu-head{
+  display:flex;align-items:center;gap:14px;
+  font-size:10px;font-weight:700;letter-spacing:.3em;color:var(--rr-text-faint);
+  padding-bottom:clamp(14px,2.4vh,26px);
+}
+.menu-head i{flex:1;height:1px;background:var(--metal-h);opacity:.72}
+.menu-list{list-style:none;flex:1;display:flex;flex-direction:column;justify-content:center;gap:clamp(2px,.6vh,8px)}
+.menu-list li{
+  opacity:0;transform:translateX(30px);
+  transition:opacity .5s var(--ease-drive),transform .58s var(--ease-drive);
+}
+body.menu-open .menu-list li{opacity:1;transform:none}
+.menu-list button{
+  position:relative;display:flex;align-items:baseline;gap:clamp(12px,1.4vw,20px);
+  width:100%;padding:clamp(7px,1.2vh,13px) 0;
+  border-bottom:1px solid rgba(13,67,79,.32);
+  text-align:left;
+}
+.menu-list button::after{
+  content:'';position:absolute;left:0;bottom:-1px;width:0;height:1px;
+  background:var(--rr-red);transition:width .5s var(--ease-drive);
+}
+.menu-list button:hover::after{width:100%}
+.menu-num{
+  flex:none;width:26px;
+  font-size:10.5px;font-weight:700;letter-spacing:.1em;color:var(--rr-red);
+}
+.menu-name{
+  font-size:clamp(19px,2vw,32px);font-style:italic;font-weight:700;
+  letter-spacing:-.01em;color:var(--rr-text-dim);
+  transition:color .34s var(--ease-drive),transform .44s var(--ease-drive);
+}
+.menu-list button:hover .menu-name{color:var(--rr-text);transform:translateX(8px)}
+.menu-list li.is-here .menu-name{color:var(--rr-text)}
+.menu-list li.is-here .menu-num{color:var(--rr-red-bright)}
+.menu-list li.is-here button::after{width:100%;background:linear-gradient(90deg,var(--rr-red-deep),var(--rr-red),var(--rr-red-bright))}
+.menu-foot{
+  padding-top:clamp(14px,2.4vh,26px);border-top:1px solid var(--rr-line);
+  font-size:9.5px;font-weight:700;letter-spacing:.18em;color:var(--rr-text-faint);
+  display:flex;flex-direction:column;gap:10px;
+}
+.menu-powered{display:flex;align-items:center;gap:12px}
+.menu-powered .rj-lit{--rj:34px}
+.menu-powered b{font-size:10.5px;font-weight:700;letter-spacing:.16em;color:var(--rr-text)}
+
+/* ── RJ ENERGIES SYMBOL CARRIER ───────────────────────────────────────────
+   The supplied artwork is used exactly as delivered — same pixels, same
+   alpha, same 1:1 aspect, no CSS filter, no crop, no card and no plate. Its
+   colour treatment now follows the royal-teal + gold system, so the mark
+   reads on the dark ground unaided. */
+.rj-lit{
+  position:relative;flex:none;display:flex;align-items:center;
+  width:auto;height:var(--rj,34px);
+}
+.rj-lit img{position:relative;display:block;height:100%;width:auto;
+  filter:drop-shadow(0 1px 1px rgba(1,9,12,.92)) drop-shadow(0 3px 12px rgba(1,9,12,.64))}
+
+/* ════════════════════════════ CUSTOM CURSOR ══════════════════════════════ */
+/* An instrument reticle, not a pointer ornament: a pixel-exact core sits on the
+   true pointer position, and a machined tachometer bezel rides around it with a
+   little mechanical compliance. Only the bezel ever lags — the core never does.
+
+   VISIBILITY CONTRACT — the native arrow is hidden ONLY under html.cur-on, and
+   that class is added by JS on the first real mousemove of a fine pointer.
+   So the page can never end up with no cursor at all: if the script fails, the
+   media query is irrelevant and the system cursor simply stays.  (The previous
+   build hid the arrow inside a media query while a later, equal-specificity
+   `.cur{display:none}` won the cascade and hid the replacement too.) */
+.cur{display:none}
+html.cur-on .cur{display:block}
+html.cur-on,
+html.cur-on *{cursor:none}
+
+.cur{
+  position:fixed;left:0;top:0;z-index:var(--z-cursor);
+  width:44px;height:44px;margin:-22px 0 0 -22px;
+  transform:translate3d(-200px,-200px,0);
+  pointer-events:none;
+  opacity:0;transition:opacity .22s var(--ease-drive);
+  will-change:transform;
+}
+.cur.is-live{opacity:1}
+
+/* ── the assembly that carries momentum ───────────────────────────────── */
+.cur-lag{position:absolute;inset:0;will-change:transform}
+.cur-bezel{position:absolute;inset:0;width:100%;height:100%;overflow:visible;
+           transition:transform .34s var(--ease-snap)}
+
+/* segmented bezel: four arcs, four gaps on the diagonals — reads machined
+   rather than drawn. .cur-shade is the dark understroke that keeps it legible
+   over white brochure pages and bright video frames. */
+.cur-shade,.cur-ring{fill:none;stroke-dasharray:14.08 3.2}
+.cur-shade{stroke:rgba(0,0,0,.42);stroke-width:2.6}
+.cur-ring{stroke:rgba(255,255,255,.72);stroke-width:1.1;
+          transition:stroke .3s,stroke-width .3s}
+
+/* tachometer needle — same 270° geometry as the boot instrument, and carrying
+   its own dark understroke: the brand-red CTAs are the same red as the needle,
+   so without it the sweep would vanish exactly where it matters most */
+.cur-arc{
+  fill:none;stroke-linecap:round;
+  stroke-dasharray:87.97;stroke-dashoffset:87.97;
+  transition:stroke-dashoffset .42s var(--ease-drive);
+}
+.cur-arc-shade{stroke:rgba(0,0,0,.45);stroke-width:2.5}
+.cur-sweep{stroke:var(--rr-red-ember);stroke-width:1.15;
+           transition:stroke-dashoffset .42s var(--ease-drive),stroke .3s}
+
+/* four index ticks, machined, sitting just outside the bezel */
+.cur-tick{
+  position:absolute;left:50%;top:50%;width:1px;height:4px;
+  background:rgba(255,255,255,.8);
+  box-shadow:0 0 2px rgba(0,0,0,.7);
+  transition:transform .34s var(--ease-snap),opacity .26s,height .3s var(--ease-snap);
+}
+.cur-tick-n{transform:translate(-50%,-17.25px)}
+.cur-tick-s{transform:translate(-50%,13.25px)}
+.cur-tick-e{transform:translate(14.75px,-50%) rotate(90deg)}
+.cur-tick-w{transform:translate(-15.75px,-50%) rotate(90deg)}
+
+/* ── the precision core: always exactly on the pointer ────────────────── */
+.cur-core{
+  position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;
+  background:#fff;border-radius:50%;
+  box-shadow:0 0 0 1px rgba(0,0,0,.4),0 1px 3px rgba(0,0,0,.55);
+  transition:width .26s var(--ease-snap),height .26s var(--ease-snap),
+             margin .26s var(--ease-snap),background .26s,border-radius .26s;
+}
+
+/* HUD readout */
+.cur-label{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,22px);
+  font-size:7.5px;font-weight:700;letter-spacing:.24em;color:#fff;white-space:nowrap;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);
+  opacity:0;transition:opacity .26s var(--ease-drive),transform .3s var(--ease-drive);
+}
+
+/* ── states ───────────────────────────────────────────────────────────── */
+/* anything clickable: the bezel opens and the needle lifts off its stop */
+.cur[data-state] .cur-ring{stroke:rgba(255,255,255,.92)}
+.cur[data-state="interactive"] .cur-bezel{transform:scale(1.28)}
+.cur[data-state="interactive"] .cur-arc{stroke-dashoffset:73.5}
+.cur[data-state="interactive"] .cur-tick-n{transform:translate(-50%,-20.5px)}
+.cur[data-state="interactive"] .cur-tick-s{transform:translate(-50%,16.5px)}
+.cur[data-state="interactive"] .cur-tick-e{transform:translate(18px,-50%) rotate(90deg)}
+.cur[data-state="interactive"] .cur-tick-w{transform:translate(-19px,-50%) rotate(90deg)}
+
+/* primary calls to action run the needle up into the brand red */
+.cur[data-state="cta"] .cur-bezel{transform:scale(1.38)}
+.cur[data-state="cta"] .cur-arc{stroke-dashoffset:58.3}
+.cur[data-state="cta"] .cur-core{width:5.5px;height:5.5px;margin:-2.75px 0 0 -2.75px}
+.cur[data-state="cta"] .cur-tick{opacity:.55}
+
+/* menu: the core becomes a rule, echoing the menu's own line language */
+.cur[data-state="menu"] .cur-bezel{transform:scale(1.18)}
+.cur[data-state="menu"] .cur-arc{stroke-dashoffset:67}
+.cur[data-state="menu"] .cur-tick{opacity:0}
+.cur[data-state="menu"] .cur-core{width:13px;height:1.5px;margin:-.75px 0 0 -6.5px;border-radius:0}
+.cur[data-state="menu"] .cur-label{opacity:1;transform:translate(-50%,26px)}
+
+/* media: the reticle opens wide and gets out of the way of the frame */
+.cur[data-state="media"] .cur-bezel{transform:scale(1.6)}
+.cur[data-state="media"] .cur-arc{stroke-dashoffset:48.4}
+.cur[data-state="media"] .cur-sweep{stroke:rgba(255,255,255,.9)}
+.cur[data-state="media"] .cur-core{width:0;height:0;margin:0}
+.cur[data-state="media"] .cur-tick{opacity:0}
+.cur[data-state="media"] .cur-label{opacity:1;transform:translate(-50%,30px)}
+
+/* chapter navigation: one index tick extends into a direction mark */
+.cur[data-state^="nav"] .cur-bezel{transform:scale(1.32)}
+.cur[data-state^="nav"] .cur-arc{stroke-dashoffset:61.6}
+.cur[data-state^="nav"] .cur-label{opacity:1;transform:translate(-50%,27px)}
+.cur[data-state="nav-next"] .cur-tick-e{transform:translate(20px,-50%) rotate(90deg);height:9px}
+.cur[data-state="nav-next"] .cur-tick-w{opacity:0}
+.cur[data-state="nav-prev"] .cur-tick-w{transform:translate(-21px,-50%) rotate(90deg);height:9px}
+.cur[data-state="nav-prev"] .cur-tick-e{opacity:0}
+
+/* press: the bezel clamps down and the needle hits the stop — mechanical,
+   not bouncy. Short duration, fast ease. */
+.cur.is-down .cur-bezel{transform:scale(.78);transition-duration:.11s}
+.cur.is-down .cur-arc{stroke-dashoffset:40.5;transition-duration:.13s}
+.cur.is-down .cur-ring{stroke:#fff;stroke-width:1.4}
+.cur.is-down .cur-core{width:3px;height:3px;margin:-1.5px 0 0 -1.5px}
+
+/* ════════════════════════════ BOOT / TACHOMETER ══════════════════════════ */
+.boot{
+  position:fixed;inset:0;z-index:var(--z-boot);
+  display:grid;place-items:center;
+  background:radial-gradient(70% 60% at 50% 46%,#08272e 0%,#020d10 70%);
+  transition:opacity .7s var(--ease-drive),visibility 0s linear .7s;
+}
+body[data-boot="done"] .boot{opacity:0;visibility:hidden;pointer-events:none}
+.boot-inner{position:relative;display:grid;place-items:center;width:min(84vw,320px)}
+.tach{width:100%;height:auto;overflow:visible}
+.tach-track{fill:none;stroke:rgba(240,200,92,.318);stroke-width:3}
+.tach-sweep{
+  fill:none;stroke:url(#sweepGrad);stroke-width:3;stroke-linecap:round;
+  stroke-dasharray:829.4;stroke-dashoffset:829.4;
+  transform:rotate(135deg);transform-origin:160px 160px;
+}
+/* the redline arc was drawn with a zero-length dash, so it never appeared at
+   all. It now covers 160-200 on the new scale: 80% along the 622-unit sweep. */
+.tach-redline{
+  fill:none;stroke:var(--rr-red-ember);stroke-width:3;opacity:.45;
+  stroke-dasharray:124.4 705;stroke-dashoffset:-497.6;
+  transform:rotate(135deg);transform-origin:160px 160px;
+}
+/* three tick tiers: fine graduations, majors every 20, and a longer, brighter
+   tick under each printed numeral */
+.tach-ticks line{stroke:rgba(240,200,92,.42);stroke-width:1.2}
+.tach-ticks line.maj{stroke:rgba(251,230,168,.72);stroke-width:1.9}
+.tach-ticks line.lab{stroke:rgba(255,251,239,.92);stroke-width:2.3}
+.tach-ticks line.red{stroke:var(--rr-red)}
+.tach-nums text{
+  fill:rgba(251,230,168,.66);
+  font-size:12px;font-weight:700;letter-spacing:.04em;
+  font-variant-numeric:tabular-nums;
+}
+.tach-nums text.red{fill:rgba(240,200,92,.9)}
+.tach-bezel{fill:none;stroke:rgba(240,200,92,.15);stroke-width:1}
+.tach-bezel-in{stroke:rgba(240,200,92,.09)}
+/* milled blade, lit along its length. The old 7px bloom read as neon; this is
+   a shadow that seats it on the dial plus the faintest catch. */
+.tach-needle{
+  fill:url(#needleGrad);stroke:none;
+  transform-origin:160px 160px;transform:rotate(-135deg);
+  filter:drop-shadow(0 1px 3px rgba(0,0,0,.8)) drop-shadow(0 0 4px rgba(240,200,92,.42));
+}
+.tach-boss{fill:#04222a;stroke:rgba(240,200,92,.34);stroke-width:1}
+.tach-hub{fill:#02171c;stroke:rgba(251,230,168,.78);stroke-width:1.6}
+.boot-readout{position:absolute;top:52%;display:flex;flex-direction:column;align-items:center;gap:4px}
+.boot-rpm{font-size:clamp(30px,5vw,46px);font-style:italic;font-weight:700;color:var(--rr-red-bright);line-height:1}
+.boot-unit{font-size:8.5px;font-weight:700;letter-spacing:.3em;color:var(--rr-text-faint)}
+.boot-word{
+  margin-top:clamp(18px,3vh,30px);
+  font-size:10px;font-weight:700;letter-spacing:.42em;color:var(--rr-red);
+  min-height:1em;
+}
+.boot-brand{
+  margin-top:8px;font-size:9px;font-weight:700;letter-spacing:.4em;
+  color:var(--rr-text-faint);
+}
+
+/* ═══════════════════════ CHAPTER TRANSITION VEIL ═════════════════════════ */
+/* one shared device: a blade sweeps, a fuel bar fills, the next chapter is
+   already decoded underneath */
+.veil{
+  position:absolute;inset:0;z-index:var(--z-menu);
+  pointer-events:none;visibility:hidden;
+}
+.veil.is-on{visibility:visible}
+.veil-sheet{
+  position:absolute;inset:-2% -6%;
+  will-change:transform;
+  /* the blade is royal teal with a machined gold edge catching the light on
+     both leading faces — paint only, the sweep timing is untouched */
+  background:linear-gradient(100deg,
+    rgba(2,17,20,0) 0%,rgba(240,200,92,.473) 11%,rgba(5,34,39,.97) 16%,
+    rgba(3,23,27,.99) 38%,rgba(4,28,33,.99) 62%,rgba(5,34,39,.97) 84%,
+    rgba(240,200,92,.473) 89%,rgba(2,17,20,0) 100%);
+  transform:translateX(-118%) skewX(-8deg);
+}
+.veil.is-fwd .veil-sheet{animation:veilFwd .92s var(--ease-launch) forwards}
+.veil.is-back .veil-sheet{animation:veilBack .92s var(--ease-launch) forwards}
+@keyframes veilFwd{
+  0%{transform:translateX(-118%) skewX(-8deg)}
+  42%{transform:translateX(0) skewX(-8deg)}
+  58%{transform:translateX(0) skewX(-8deg)}
+  100%{transform:translateX(118%) skewX(-8deg)}
+}
+@keyframes veilBack{
+  0%{transform:translateX(118%) skewX(8deg)}
+  42%{transform:translateX(0) skewX(8deg)}
+  58%{transform:translateX(0) skewX(8deg)}
+  100%{transform:translateX(-118%) skewX(8deg)}
+}
+.veil-bar{
+  position:absolute;left:50%;top:50%;width:min(240px,30vw);height:2px;
+  margin-left:calc(min(240px,30vw) / -2);
+  background:rgba(240,200,92,.442);opacity:0;
+}
+.veil-bar i{display:block;height:100%;width:0;
+  background:linear-gradient(90deg,var(--rr-red-deep),var(--rr-red),var(--rr-red-ember))}
+/* the chapter word during a transition: royal gold on a black edge, readable
+   without becoming a title card */
+.veil-word{
+  position:absolute;left:50%;top:calc(50% - 30px);transform:translateX(-50%);
+  font-size:15px;font-weight:700;letter-spacing:.40em;opacity:0;
+  white-space:nowrap;
+  background:linear-gradient(100deg,var(--rr-red-deep),var(--rr-red) 32%,
+             var(--rr-red-ember) 52%,var(--rr-red) 72%,var(--rr-red-deep));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.95)) drop-shadow(0 0 12px rgba(0,0,0,.8));
+}
+.veil.is-on .veil-bar{animation:veilMeter .92s var(--ease-drive) forwards}
+.veil.is-on .veil-bar i{animation:veilFill .58s var(--ease-drive) .16s forwards}
+.veil.is-on .veil-word{animation:veilMeter .92s var(--ease-drive) forwards}
+/* the chapter word holds through most of the sweep so the identity registers */
+@keyframes veilMeter{0%,7%{opacity:0}19%,80%{opacity:1}100%{opacity:0}}
+@keyframes veilFill{from{width:0}to{width:100%}}
+
+/* ═══════════════════════════ BROCHURE READER ═════════════════════════════ */
+.reader{
+  position:absolute;inset:0;z-index:calc(var(--z-boot) - 1);
+  display:flex;flex-direction:column;
+  background:var(--rr-void);
+  opacity:0;visibility:hidden;
+  transition:opacity .5s var(--ease-drive),visibility 0s linear .5s;
+}
+body.reader-open .reader{opacity:1;visibility:visible;transition-delay:0s}
+.reader-top{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding:clamp(16px,2.4vh,26px) clamp(20px,3vw,46px);
+  border-bottom:1px solid var(--rr-line);
+}
+.reader-top em{
+  display:block;font-size:11px;font-weight:700;letter-spacing:.26em;
+  color:var(--rr-red);font-style:normal;
+}
+.reader-top span{
+  display:block;margin-top:6px;font-family:Arial,sans-serif;font-size:12px;
+  color:var(--rr-text-dim);
+}
+.reader-tools{display:flex;align-items:center;gap:12px}
+.reader-close{
+  width:38px;height:38px;border:1px solid var(--rr-line);color:var(--rr-text);font-size:15px;
+  transition:border-color .3s,background .3s,transform .3s var(--ease-snap);
+}
+.reader-close:hover{border-color:var(--rr-red);background:rgba(240,200,92,.318);transform:rotate(90deg)}
+.reader-body{flex:1;display:flex;min-height:0;padding:clamp(14px,2.4vh,26px) clamp(20px,3vw,46px)}
+.reader-pages{
+  width:clamp(84px,8vw,124px);flex:none;overflow-y:auto;
+  display:flex;flex-direction:column;gap:10px;padding-right:14px;
+  scrollbar-width:thin;
+}
+.reader-pages img{
+  width:100%;height:auto;border:1px solid transparent;opacity:.5;
+  transition:opacity .3s,border-color .3s,transform .35s var(--ease-snap);
+}
+.reader-pages img:hover{opacity:.85;transform:translateX(3px)}
+.reader-pages img.is-on{opacity:1;border-color:var(--rr-red)}
+.reader-stage{
+  flex:1;min-width:0;display:grid;place-items:center;
+  border-left:1px solid var(--rr-line);padding-left:clamp(14px,2vw,30px);
+}
+.reader-stage img{max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.reader-foot{
+  display:flex;align-items:center;justify-content:center;gap:22px;
+  padding:clamp(10px,1.6vh,18px);border-top:1px solid var(--rr-line);
+  font-size:11px;letter-spacing:.2em;color:var(--rr-text-dim);
+}
+.reader-foot button{
+  width:34px;height:34px;border:1px solid var(--rr-line);color:var(--rr-text);font-size:17px;
+  transition:border-color .3s,background .3s;
+}
+.reader-foot button:hover{border-color:var(--rr-red);background:rgba(240,200,92,.318)}
+
+/* menu, reader and boot all suppress the deck's own pointer work */
+body.menu-open .deck,body.reader-open .deck{pointer-events:none}
+/* the reader owns the whole frame while it is open */
+body.reader-open .chrome,body.reader-open .rail,
+body.reader-open .pager,body.reader-open .home-ctl{opacity:0;pointer-events:none}
+.chrome,.rail,.pager,.home-ctl{transition:opacity .4s var(--ease-drive)}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  PHONE — PERSISTENT INTERFACE                                          ║
+   ║                                                                        ║
+   ║  The old phone interface spent 200px of an 844px screen on chrome: a   ║
+   ║  74px header, a 30px bar and a 96px dock at the foot. Nothing scrolls  ║
+   ║  vertically any more, so nothing can scroll underneath a control and   ║
+   ║  the dock is not needed at all; the progress read-out becomes a 2px    ║
+   ║  rule on the header's own edge. Chrome is now 56px — under 7% of the   ║
+   ║  screen — and the other 93% is the chapter.                            ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+@media (max-width:760px),(max-height:520px) and (orientation:landscape){
+
+  /* the chrome band is 68px; the control ROW inside it stays 56px, so the
+     brand, the REGISTER key and the menu button do not move by a pixel. The
+     extra 12px is a strip at the bottom of the band that carries the rule and
+     the chapter indicator — both on opaque chrome, never on the picture. */
+  :root{--header-h:68px}
+
+  /* seven chapter links need ~530px of tracking; a phone header is 360-430px
+     wide. Their job belongs to the menu beside them, at a touchable size. */
+  .topnav,.nav-ink{display:none}
+  .chapter-tag{display:none}
+
+  .chrome{height:56px;padding:0 12px 0 10px;gap:10px}
+  .chrome::before{
+    opacity:1;
+    inset:0 0 -12px 0;
+    background:linear-gradient(180deg,
+      rgba(2,18,22,.96) 0%,rgba(2,18,22,.94) 66%,rgba(3,23,27,.90) 100%);
+    border-bottom:0;
+  }
+  .brand{padding:6px 4px;display:flex;align-items:center;min-height:44px}
+  .brand img{height:34px;max-height:calc(var(--header-h) - 14px)}
+  .chrome-right{gap:8px}
+  /* .btn sets the height, so this needs one class more to reach 44px */
+  .btn.btn-register{height:44px;padding:0 14px;font-size:10.5px;letter-spacing:.09em}
+  .btn-register .ico{width:12px;height:12px}
+  .menu-btn{width:44px;height:44px;padding:0 6px}
+
+  /* ── PROGRESS ──────────────────────────────────────────────────────────
+     Same markup, same seven items, same click handlers — re-set as a seven
+     segment rule sitting on the header's lower edge. Which segments are
+     filled is pure CSS off body[data-chapter], which app.js already writes,
+     so the redesign adds nothing to the JavaScript. The chapter's own name
+     is printed once inside the chapter, so the bar does not repeat it. */
+  .rail{
+    position:fixed;left:0;right:0;top:calc(var(--header-h) - 2px);bottom:auto;
+    transform:none;z-index:calc(var(--z-chrome) + 1);
+    display:block;height:2px;gap:0;
+    --seg-off:rgba(240,200,92,.18);
+    --seg-on:var(--metal-h);
+    --seg-hover:var(--rr-red);
+  }
+  .rail::before,.rail-fuel{display:none}
+  .rail ol{display:flex;flex-direction:row;gap:2px;height:2px;margin:0}
+  .rail li{flex:1 1 0;min-width:0;position:static;display:block}
+  /* 2px of rule, 22px of thumb: the padding is the touch target */
+  .rail button{
+    display:block;width:100%;position:static;gap:0;
+    padding:10px 0;margin:-10px 0;
+  }
+  /* ── WHERE AM I ────────────────────────────────────────────────────────
+     One line, under the rule, showing the chapter you are actually on. It is
+     the rail's own <em> — the label the desktop rail reveals on hover — so
+     there is no new markup and no new JavaScript: is-here is already toggled
+     on every chapter change, and the name comes from the same registry the
+     menu and the pager use. It sits at the right so the brand, the REGISTER
+     key and the menu button keep the header to themselves. */
+  .rail .rail-num{display:none}
+  .rail button em{
+    display:none;
+    position:absolute;left:auto;right:var(--gutter);top:-11px;
+    margin:0;opacity:1;transform:none;
+    font-size:8.5px;font-weight:700;letter-spacing:.22em;
+    color:var(--rr-text-dim);text-shadow:none;white-space:nowrap;
+  }
+  .rail li.is-here button em{display:block}
+  .rail li.is-here button em::after{display:none}   /* no hover underscore */
+  .rail button i{
+    display:block;width:100%;height:2px;background:var(--seg-off);
+    transition:background .34s var(--ease-drive);
+  }
+  .rail li.is-here button i{width:100%;height:2px}
+  .rail li.is-here button i::after{display:none}
+  /* every segment up to and including the current one carries the fill */
+  body[data-chapter="0"] .rail li:nth-child(-n+1) button i,
+  body[data-chapter="1"] .rail li:nth-child(-n+2) button i,
+  body[data-chapter="2"] .rail li:nth-child(-n+3) button i,
+  body[data-chapter="3"] .rail li:nth-child(-n+4) button i,
+  body[data-chapter="4"] .rail li:nth-child(-n+5) button i,
+  body[data-chapter="5"] .rail li:nth-child(-n+6) button i,
+  body[data-chapter="6"] .rail li:nth-child(-n+7) button i{
+    background:var(--seg-on);
+  }
+  /* ── HOVER ─────────────────────────────────────────────────────────────
+     The desktop rail is a vertical spine whose hover shrinks the tick to a
+     30px thumb and lifts the label by half its height. Laid out horizontally
+     those two become layout shifts on a 2px rule, so they are neutralised
+     here first — ungated, because a touch browser can still latch :hover on
+     a tap and the geometry must hold either way. */
+  .rail button:hover i{width:100%}
+  .rail button:hover em{transform:none}
+  /* Then the affordance itself: the segment under the pointer takes the
+     project's gold, so the menu answers the pointer BEFORE the click, while
+     the fill behind it goes on recording only where you actually are. Same
+     hairline, same token, no glow, no growth. Pointer devices only. */
+  @media (hover:hover) and (pointer:fine){
+    .rail button i{transition:background .28s var(--ease-drive)}
+    body[data-chapter] .rail li button:hover i{background:var(--seg-hover)}
+  }
+
+  /* ── PREV / NEXT ───────────────────────────────────────────────────────
+     A swipe is the primary way through the deck on a phone and always was.
+     These are the visible reminder that it exists, so they are two marks in
+     the bottom corners rather than two chips: no fill, no border, nothing
+     drawn that the ramp underneath has not already darkened. */
+  .home-ctl{display:none}
+  .pager{bottom:14px}
+  .pager-prev{left:10px}
+  .pager-next{right:10px}
+  .pager-label{display:none}
+  .pager-prev,.pager-next{
+    width:44px;height:44px;padding:0;
+    display:flex;align-items:center;justify-content:center;
+    border:0;background:none;color:var(--rr-text-dim);
+  }
+  .pager svg{
+    width:26px;height:10px;
+    filter:drop-shadow(0 1px 3px rgba(1,10,12,.9));
+  }
+
+  /* ── MENU ──────────────────────────────────────────────────────────────
+     the primary navigation on a phone, so its rows are sized for a thumb */
+  .menu-panel{width:min(88vw,360px);padding:calc(var(--header-h) + 20px) 22px 26px}
+  .menu-list button{min-height:52px;font-size:15px}
+  .menu-foot{font-size:10px}
+
+  /* ── BROCHURE READER ───────────────────────────────────────────────────*/
+  .reader-top{padding:10px 12px;gap:10px}
+  .reader-top p em{font-size:11px}
+  .reader-top p span{display:none}
+  .reader-pages{display:none}
+  .reader-foot button{min-width:48px;min-height:48px}
+  .reader-close{min-width:44px;min-height:44px}
+
+  /* the custom cursor is a fine-pointer device; already gated in JS, this
+     just guarantees it never paints on a touch screen */
+  .cur{display:none}
+}
+
+/* phone landscape is short rather than narrow: the header and the boot dial
+   both give up height so the chapter keeps the frame */
+@media (max-height:520px) and (orientation:landscape){
+  :root{--header-h:48px}
+  .brand img{height:30px}
+  /* a landscape phone is 390px tall and the chapter's own eyebrow is already
+     on screen naming it, so the rule stays a rule and gives back the height */
+  .rail{height:2px}
+  .rail button em{display:none}
+  .pager{bottom:8px}
+  .tach{width:min(38vh,150px);height:min(38vh,150px)}
+  .boot-rpm{font-size:clamp(28px,7vh,44px)}
+  .boot-brand{font-size:9px}
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  NARROW DESKTOP WINDOW (761-940px wide, tall)                          ║
+   ║  Not a phone, so the phone layer above does not apply — but the header  ║
+   ║  still cannot fit brand + seven chapter links + tag + REGISTER + menu.  ║
+   ║  Measured at 860x1000 the right-hand group ran up to 153px past the     ║
+   ║  edge and the REGISTER button was clipped. The header collapses the     ║
+   ║  same way it does on a phone; the chapter layout is untouched, and      ║
+   ║  every chapter stays reachable from the menu, the pagers, the rail and  ║
+   ║  a swipe. Applies to both themes.                                       ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+@media (min-width:761px) and (max-width:940px) and (min-height:521px){
+  .topnav,.nav-ink{display:none}
+  .chapter-tag{display:none}
+  .chrome{padding:0 16px 0 12px;gap:12px}
+  .btn-register{height:42px;padding:0 15px;font-size:11px}
+}

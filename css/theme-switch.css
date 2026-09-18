@@ -1,0 +1,44 @@
+/* ===========================================================================
+   THEME SWITCH — review affordance only.
+   All selectors here are new (.theme-sw and its children). Nothing in this
+   file overrides an existing rule, so the dark design is unchanged apart from
+   this one small control sitting at the foot of the chapter menu.
+   Delete this file, css/theme-light.css, js/theme.js and their four tags and
+   the project is exactly the dark build that was QA'd.
+   =========================================================================== */
+.theme-sw{
+  display:flex;align-items:center;gap:7px;
+  margin-top:clamp(14px,2vh,22px);
+  padding:6px 7px 6px 0;
+  border:0;background:none;
+  font-family:inherit;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.theme-sw i{
+  font-style:normal;
+  font-size:8.5px;font-weight:700;letter-spacing:.22em;
+  color:var(--rr-text-faint);
+  margin-right:2px;
+}
+.theme-sw b{
+  display:block;
+  padding:5px 9px;
+  font-size:9px;font-weight:700;letter-spacing:.16em;
+  color:var(--rr-text-faint);
+  background:rgba(255,255,255,.05);
+  border:1px solid transparent;
+  transition:color .26s var(--ease-drive),background .26s var(--ease-drive),
+             border-color .26s var(--ease-drive);
+}
+.theme-sw b.on{
+  color:var(--rr-ink);
+  background:var(--rr-red);
+  border-color:var(--rr-red);
+}
+.theme-sw:hover b:not(.on){color:var(--rr-text-dim)}
+
+/* a phone needs the row to be reachable with a thumb */
+@media (max-width:760px),(max-height:520px) and (orientation:landscape){
+  .theme-sw{min-height:44px;padding:8px 7px 8px 0}
+  .theme-sw b{padding:7px 11px;font-size:10px}
+}

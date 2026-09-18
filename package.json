@@ -1,0 +1,11 @@
+{
+  "name": "reston-racing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reston Racing — seven-chapter cinematic motorsport site. Static: no build step, no dependencies.",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=14" }
+}

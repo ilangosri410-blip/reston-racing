@@ -1,0 +1,740 @@
+/* ===========================================================================
+   OPTION 2 — LIGHT / PREMIUM THEME
+   ---------------------------------------------------------------------------
+   Every rule in this file is scoped under [data-theme="light"]. Nothing here
+   can reach the dark theme: remove the attribute and the site is byte-for-byte
+   the original dark design. No existing rule is edited — this file only adds.
+
+   PALETTE (source of truth)
+     #F1EFE4 / #F0EDE4   cream canvas, large negative space
+     #303E3F             dark racing green — type, nav, buttons, borders
+     #E5C96E / #EFC762   honey gold — accents, active states, racing detail
+
+   THE ONE HARD CONSTRAINT
+     Honey on cream measures 1.4:1. It is therefore never used as body text on
+     a light surface. Honey is used as a graphic colour (rules, ticks, bars,
+     borders, active marks) and as type on dark green, where it reads at 6.9:1.
+     Gold TYPE on cream uses --rr-red, redefined below as a deep honey ink at
+     5.1:1. Same family, same warmth, actually readable.
+
+   BALANCE
+     ~70% cream surfaces · ~20% dark green structure · ~10% honey accent.
+     Dark green carries the header, the menu drawer, the primary button and the
+     featured partner row — which is also what keeps the gold brand artwork
+     legible, since that artwork is drawn light.
+
+   FOOTAGE
+     No clip is touched. Scrims are re-pitched from petrol to cream so the copy
+     column sits on paper while the frame stays open, and the atmosphere layer
+     melts the plate into the page at its edges only. The centre of every frame
+     is left completely clear, so the footage keeps its own contrast, colour and
+     grade — it stays cinematic against the light canvas rather than fading
+     into it.
+   =========================================================================== */
+
+:root[data-theme="light"]{
+  /* ---- honey: ink for type, bright for graphics ------------------------ */
+  --rr-red-deep:       #6b4f12;   /* deep honey shadow                     */
+  --rr-gold-mid:       #c9a43c;   /* midtone for rules and bars            */
+  --rr-red:            #7e5f16;   /* GOLD INK — type on cream, 5.1:1       */
+  --rr-red-bright:     #efc762;   /* honey accent                          */
+  --rr-red-ember:      #e5c96e;   /* honey, second stop                    */
+  --rr-honey:          #efc762;   /* explicit bright honey                 */
+  --rr-honey-soft:     #e5c96e;
+
+  /* GRAPHIC METAL — for rules, spines, ticks and marks on paper.
+     The envelope stays inside the gold family and the catch-light is a warm
+     cream rather than white, so a 1-2px rule keeps both of its edges against
+     an F0EDE4 ground instead of dissolving into it. Type never uses this. */
+  --metal-h: linear-gradient(100deg,
+      #6b4f12 0%,#96721e 13%,#c19a33 30%,
+      #e2c069 45%,#f0d999 50%,#e2c069 55%,
+      #c19a33 70%,#96721e 87%,#6b4f12 100%);
+  --metal-v: linear-gradient(180deg,
+      #6b4f12 0%,#96721e 14%,#c19a33 31%,
+      #e2c069 46%,#f0d999 50%,#e2c069 54%,
+      #c19a33 69%,#96721e 86%,#6b4f12 100%);
+  /* the same metal on a dark green surface, where it can run brighter */
+  --metal-on-dark: linear-gradient(100deg,
+      #a8842a 0%,#d8b451 16%,#efc762 34%,
+      #f6e2a8 48%,#fdf3d2 50%,#f6e2a8 52%,
+      #efc762 68%,#d8b451 86%,#a8842a 100%);
+  /* one soft honey radiance, reused wherever gold needs to sit off the page */
+  --gold-lift: 0 0 12px rgba(226,192,105,.55),0 0 3px rgba(150,114,30,.42);
+
+  /* ---- the structural colour is now dark racing green ------------------ */
+  --rr-teal:           #303e3f;
+  --rr-teal-deep:      #24302f;
+  --rr-teal-ink:       #1b2423;
+  --rr-teal-lift:      #4a5d5c;
+  --rr-teal-veil:      rgba(48,62,63,.10);
+
+  /* ---- surfaces · paper ------------------------------------------------ */
+  --rr-void:           #f1efe4;
+  --rr-bg:             #f0ede4;
+  --rr-bg-raised:      #faf8f1;
+  --rr-paper:          #303e3f;
+  --rr-ink:            #303e3f;
+
+  /* ---- text ------------------------------------------------------------ */
+  --rr-text:           #2b3637;   /* 9.6:1 on cream                        */
+  --rr-text-dim:       #556465;   /* 5.9:1                                 */
+  --rr-text-faint:     #647374;   /* 4.6:1 on cream — captions only        */
+  --rr-text-onDark:    #f2efe6;   /* type sitting on a dark green surface   */
+
+  /* ---- lines & overlays ------------------------------------------------ */
+  --rr-line:           rgba(48,62,63,.26);
+  --rr-line-strong:    rgba(48,62,63,.70);
+  --rr-line-teal:      rgba(48,62,63,.16);
+  --rr-scrim:          rgba(241,239,228,.88);
+  --rr-scrim-soft:     rgba(241,239,228,.55);
+
+  color-scheme: light;
+}
+
+/* ══════════════════════════════ CANVAS ═══════════════════════════════════ */
+[data-theme="light"] body{background:var(--rr-void);color:var(--rr-text)}
+
+/* The plate under the copy is deliberately open, so the two supporting text
+   tones carry one notch more weight inside a chapter than they would on flat
+   paper. The hierarchy is unchanged — ink > dim > faint — and the header,
+   drawer, rail and credit bar keep their own colours. This is what buys the
+   footage its transparency without costing the type anything. */
+[data-theme="light"] .ch{
+  --rr-text-dim:#3f4e50;
+  --rr-text-faint:#4e5f60;
+}
+
+/* ══════════════════════════ HEADER · dark green ══════════════════════════
+   The nav bar is one of the three places the palette asks dark green to lead.
+   It is also what keeps the Reston mark readable: the supplied artwork is
+   drawn light, so it needs a dark ground. The mark itself is untouched. */
+[data-theme="light"] .chrome::before{
+  background:linear-gradient(180deg,#303e3f 0%,#303e3f 72%,#2b3839 100%);
+  border-bottom:1px solid rgba(239,199,98,.55);
+  opacity:1;
+}
+[data-theme="light"] .brand img{
+  filter:drop-shadow(0 1px 1px rgba(12,18,18,.55));
+}
+[data-theme="light"] .topnav a{color:rgba(242,239,230,.72)}
+[data-theme="light"] .topnav a:hover{color:#f2efe6}
+[data-theme="light"] .topnav a.is-active{color:var(--rr-honey)}
+[data-theme="light"] .topnav a::after{background:var(--rr-honey)}
+[data-theme="light"] .nav-ink{box-shadow:0 0 0 .5px rgba(12,18,18,.4)}
+[data-theme="light"] .nav-ink::after{
+  background:linear-gradient(90deg,rgba(255,251,239,0),rgba(255,251,239,.9),rgba(255,251,239,0));
+}
+[data-theme="light"] .chapter-tag{color:rgba(242,239,230,.66)}
+[data-theme="light"] .chapter-tag em{color:var(--rr-honey)}
+[data-theme="light"] .chapter-tag i{background:var(--metal-on-dark)}
+[data-theme="light"] .menu-btn span{background:var(--rr-honey)}
+
+/* header button: honey key on the dark bar.
+   The markup is `btn btn-solid btn-register`, so this needs one class more
+   than the .btn-solid rule below or the green primary fill wins the cascade
+   and the CTA disappears into the bar. */
+[data-theme="light"] .btn.btn-register{
+  background:linear-gradient(180deg,#f4d98d 0%,#efc762 42%,#e3ba4e 58%,#d9a933 100%);
+  border:1px solid rgba(107,79,18,.55);border-image:none;
+  color:#26312f;
+  box-shadow:inset 0 1px 0 rgba(255,252,238,.78),
+             inset 0 -1px 0 rgba(107,79,18,.26),
+             0 4px 14px rgba(24,32,32,.26);
+}
+[data-theme="light"] .btn.btn-register::before{background:#f2efe6}
+[data-theme="light"] .btn.btn-register:hover{color:#1b2423}
+
+/* ═════════════════ SELECTED DIVIDERS & KEY NUMBERS ══════════════════════
+   Restraint is the whole point here. The metal is spent on a handful of
+   1-2px rules and on the rail; every gold NUMBER stays a flat deep-honey ink
+   with a one-pixel paper catch-light beneath it, which reads as struck metal
+   on paper and — unlike a gradient fill — survives a contrast check. */
+[data-theme="light"] .ch-sig i{background:var(--metal-h)}
+[data-theme="light"] .ch-sig em,
+[data-theme="light"] .ph-n,
+[data-theme="light"] .loc-facts em,
+[data-theme="light"] .snapshot dd b{
+  text-shadow:0 1px 0 rgba(255,255,255,.55);
+}
+[data-theme="light"] .ch-title em{
+  text-shadow:0 1px 0 rgba(255,255,255,.45);
+}
+
+/* ══════════════════════════════ BUTTONS ═════════════════════════════════ */
+[data-theme="light"] .btn{color:var(--rr-text)}
+/* primary: solid dark green key on paper */
+[data-theme="light"] .btn-solid{
+  background:linear-gradient(180deg,#37474a,#2b3839);
+  border:1px solid #303e3f;border-image:none;
+  color:#f4f1e8;
+  box-shadow:inset 0 1px 0 rgba(255,251,239,.14),0 6px 18px rgba(38,48,48,.22);
+}
+[data-theme="light"] .btn-solid::before{background:var(--rr-honey)}
+[data-theme="light"] .btn-solid:hover{color:#26312f}
+/* secondary: paper with a green hairline */
+[data-theme="light"] .btn-ghost{
+  background:rgba(255,255,255,.52);
+  border:1px solid rgba(48,62,63,.42);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 3px 10px rgba(38,48,48,.09);
+}
+[data-theme="light"] .btn-ghost:hover{border-color:#303e3f;color:#26312f}
+[data-theme="light"] .btn-ghost::before{background:var(--rr-honey)}
+
+/* ═════════════════════ FOOTAGE · scrims re-pitched to paper ══════════════
+   Same technique as the dark theme — transparent overlay only, no filter on
+   any clip — but the gradient is cream instead of petrol, so the copy column
+   reads as paper laid over the frame and the rest of the plate stays open. */
+[data-theme="light"] .film{background:#e9e6db}
+[data-theme="light"] .film::before{
+  background:
+    radial-gradient(148% 126% at 52% 46%,
+      rgba(241,239,228,0) 84%,rgba(241,239,228,.04) 93%,
+      rgba(241,239,228,.11) 98%,rgba(243,241,231,.20) 100%),
+    linear-gradient(180deg,rgba(241,239,228,.05),rgba(241,239,228,0) 7%);
+}
+[data-theme="light"] .hero-film::before{
+  background:
+    linear-gradient(180deg,
+      rgba(241,239,228,.13) 0%,rgba(241,239,228,.05) 10%,
+      rgba(241,239,228,0) 20%),
+    radial-gradient(148% 126% at 52% 46%,
+      rgba(241,239,228,0) 84%,rgba(241,239,228,.04) 93%,
+      rgba(241,239,228,.11) 98%,rgba(243,241,231,.20) 100%);
+}
+[data-theme="light"] .hero-scrim{
+  background:
+    /* the faintest cool edge where paper stops and frame starts: it is what
+       makes the two read as two planes rather than one flat wash */
+    linear-gradient(90deg,
+      rgba(48,62,63,0) 48%,rgba(48,62,63,.045) 55%,rgba(48,62,63,0) 63%),
+    linear-gradient(90deg,
+      rgba(241,239,228,.955) 0%,rgba(241,239,228,.905) 20%,
+      rgba(241,239,228,.60) 34%,rgba(241,239,228,.20) 46%,
+      rgba(241,239,228,0) 56%),
+    linear-gradient(180deg,rgba(241,239,228,.34) 0%,rgba(241,239,228,0) 13%),
+    linear-gradient(0deg,rgba(241,239,228,.46) 0%,rgba(241,239,228,0) 18%);
+}
+[data-theme="light"] .film-scrim-left{
+  background:
+    linear-gradient(90deg,
+      rgba(48,62,63,0) 50%,rgba(48,62,63,.045) 57%,rgba(48,62,63,0) 65%),
+    linear-gradient(90deg,
+      rgba(240,237,228,.955) 0%,rgba(240,237,228,.905) 22%,
+      rgba(240,237,228,.54) 36%,rgba(240,237,228,.14) 48%,
+      rgba(240,237,228,0) 58%),
+    linear-gradient(0deg,rgba(240,237,228,.26),rgba(240,237,228,0) 18%);
+}
+/* the copy column gets paper; the machine and the roost keep the open frame.
+   Nothing spans the whole width — that is what washed the plate out. */
+[data-theme="light"] .film-scrim-full,
+[data-theme="light"] .ch-race .film-scrim-full{
+  background:
+    linear-gradient(90deg,
+      rgba(48,62,63,0) 52%,rgba(48,62,63,.05) 59%,rgba(48,62,63,0) 67%),
+    linear-gradient(90deg,
+      rgba(241,239,228,.96) 0%,rgba(241,239,228,.93) 26%,
+      rgba(241,239,228,.74) 38%,rgba(241,239,228,.26) 50%,
+      rgba(241,239,228,0) 60%),
+    linear-gradient(180deg,rgba(241,239,228,.14),rgba(241,239,228,0) 10%),
+    linear-gradient(0deg,rgba(241,239,228,.36),rgba(241,239,228,0) 24%);
+}
+[data-theme="light"] .film-scrim-deep,
+[data-theme="light"] .ch-location .film-scrim-deep{
+  background:
+    linear-gradient(90deg,
+      rgba(48,62,63,0) 50%,rgba(48,62,63,.045) 57%,rgba(48,62,63,0) 65%),
+    linear-gradient(90deg,
+      rgba(241,239,228,.955) 0%,rgba(241,239,228,.915) 24%,
+      rgba(241,239,228,.58) 38%,rgba(241,239,228,.16) 50%,
+      rgba(241,239,228,0) 60%),
+    /* the metrics block gets its own pool of paper rather than a band across
+       the whole aerial — the track between them stays completely open */
+    radial-gradient(56% 50% at 78% 80%,
+      rgba(241,239,228,.96),rgba(241,239,228,.72) 54%,rgba(241,239,228,0) 80%),
+    linear-gradient(0deg,rgba(241,239,228,.30),rgba(241,239,228,0) 18%);
+}
+[data-theme="light"] .ch-location .film::before{
+  background:
+    radial-gradient(148% 126% at 52% 46%,
+      rgba(241,239,228,0) 84%,rgba(241,239,228,.04) 93%,
+      rgba(241,239,228,.12) 98%,rgba(243,241,231,.22) 100%),
+    linear-gradient(180deg,rgba(241,239,228,.05),rgba(241,239,228,0) 8%);
+}
+
+/* ════════════════════════════ 01 · HOME ══════════════════════════════════ */
+[data-theme="light"] .ch-home{background:var(--rr-void)}
+[data-theme="light"] .ch-sig{text-shadow:none}
+[data-theme="light"] .headline .h-1{
+  color:var(--rr-text);text-shadow:none;
+}
+/* the gold headline keeps its metal, pitched down into the readable ink range
+   so it holds 5:1 on paper instead of the 1.4:1 raw honey would give */
+[data-theme="light"] .headline .h-2{
+  background:linear-gradient(166deg,
+    #a07a1c 0%,#8a681b 14%,#7e5f16 34%,
+    #b08b28 44%,#c9a43c 50%,#a07a1c 58%,
+    #8a681b 74%,#6b4f12 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:none;
+}
+[data-theme="light"] .hero-line{color:var(--rr-text);text-shadow:none}
+[data-theme="light"] .hero-date span{color:var(--rr-red);text-shadow:none}
+[data-theme="light"] .hero-rule{
+  background:linear-gradient(90deg,#c9a43c,#efc762 22%,#c9a43c 46%,rgba(201,164,60,0));
+}
+/* THE HERO CREDIT SITS ON THE PICTURE, NOT ON A SLAB.
+   This carried a dark-green translucent ground and a drop shadow, which read
+   as a rectangle laid over the hero. It is gone: no fill, no shadow, no tint
+   — the footage behind the credit is fully visible.
+   The three type tones move with it. They were pitched for a dark-green
+   surface (cream and honey); with no surface left they would be invisible on
+   the hero's cream paper, so they take the light theme's own on-paper tones —
+   ink, supporting ink, and the deep honey GOLD INK, because bright honey on
+   cream measures 1.4:1. Nothing else about the credit changes: same wording,
+   same artwork, same position, same order, same size. */
+[data-theme="light"] .sponsor{
+  background:none;
+  box-shadow:none;
+}
+/* The credit keeps the tones it was approved with — the RJ artwork is drawn
+   light and the hero footage behind this corner is dark, so cream and honey
+   are what read there. With the ground gone they carry the same one-pixel
+   halo the site already gives every other caption that sits on film, which is
+   what holds them on a bright frame as well as a dark one. */
+[data-theme="light"] .sponsor-k{
+  color:rgba(242,239,230,.80);
+  text-shadow:0 1px 3px rgba(6,12,12,.95),0 0 10px rgba(6,12,12,.8);
+}
+[data-theme="light"] .sponsor-n{
+  color:#f6f4ec;
+  text-shadow:0 1px 3px rgba(6,12,12,.95),0 0 12px rgba(6,12,12,.85);
+}
+[data-theme="light"] .sponsor-role{
+  color:var(--rr-honey);
+  text-shadow:0 1px 3px rgba(6,12,12,.95),0 0 10px rgba(6,12,12,.8);
+}
+[data-theme="light"] .sponsor-div{
+  background:linear-gradient(180deg,rgba(239,199,98,0),var(--rr-honey) 45%,rgba(239,199,98,0));
+}
+[data-theme="light"] .rj-lit img{
+  filter:drop-shadow(0 1px 2px rgba(12,18,18,.45));
+}
+[data-theme="light"] .scroll-hint{color:var(--rr-text)}
+
+/* ═══════════════════════════ 02 · THE EVENT ══════════════════════════════ */
+[data-theme="light"] .snapshot{
+  border-top:2px solid #303e3f;
+  background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(250,248,241,.90));
+  box-shadow:0 8px 24px rgba(38,48,48,.10);
+}
+[data-theme="light"] .snapshot>div{border-bottom:1px solid var(--rr-line)}
+
+/* ═══════════════════════════ 03 · EXPERIENCE ═════════════════════════════ */
+[data-theme="light"] .ch-exp{background:var(--rr-bg)}
+[data-theme="light"] .ch-exp::before{
+  background:radial-gradient(90% 70% at 78% 40%,rgba(239,199,98,.20),transparent 62%);
+}
+[data-theme="light"] .exp-list li{border-top:1px solid var(--rr-line)}
+[data-theme="light"] .reel{background:#e4e1d6}
+/* the reel caption sits on footage, so its ground stays dark — the plate keeps
+   its own contrast and the label stays readable */
+[data-theme="light"] .reel::after{
+  background:linear-gradient(0deg,rgba(32,42,42,.80),transparent 40%);
+}
+[data-theme="light"] .reel figcaption{color:#f4f1e8}
+
+/* ════════════════════════════ 04 · THE RACE ══════════════════════════════ */
+[data-theme="light"] .classes li{border-bottom:1px solid var(--rr-line)}
+[data-theme="light"] .raceday{
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(250,248,241,.92));
+  border:1px solid rgba(48,62,63,.30);
+  box-shadow:0 10px 28px rgba(38,48,48,.12);
+}
+
+/* ── the two under-films ───────────────────────────────────────────────────
+   On a near-black page a clip at 20% opacity darkens and textures. On paper it
+   does the opposite: it lifts the whole surface into haze and takes the copy
+   contrast with it. In the light theme they print instead — multiply lays the
+   clip's darks onto the cream like ink and drops its brights out entirely, so
+   the footage keeps its structure and the page keeps its contrast. The clips
+   themselves are untouched; this is a compositing mode, not a filter. */
+[data-theme="light"] .film-under{
+  mix-blend-mode:multiply;opacity:.30;
+}
+[data-theme="light"] .ch-partners .film-under{opacity:.24}
+[data-theme="light"] .film-under::before{background:none}
+/* ROAD and PARTNERS have no scrim element of their own, and anything placed
+   inside .film-under would be multiplied along with the footage. So the paper
+   for their copy column is painted by the chapter itself, above the plate
+   (z 0) and below the content (z 3). This is what lets the footage underneath
+   come up to full strength without costing the type anything. */
+[data-theme="light"] .ch-road::before,
+[data-theme="light"] .ch-partners::before{
+  content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:
+    linear-gradient(90deg,
+      rgba(48,62,63,0) 48%,rgba(48,62,63,.04) 55%,rgba(48,62,63,0) 63%),
+    linear-gradient(90deg,
+      rgba(241,239,228,.94) 0%,rgba(241,239,228,.88) 20%,
+      rgba(241,239,228,.50) 34%,rgba(241,239,228,.12) 46%,
+      rgba(241,239,228,0) 56%);
+}
+/* ROAD's phases and timeline run the full width along the bottom, so its
+   paper is shaped like that content: a band under the copy, with the whole
+   upper half of the plate left open. */
+[data-theme="light"] .ch-road::before{
+  background:
+    linear-gradient(0deg,
+      rgba(241,239,228,.95) 0%,rgba(241,239,228,.93) 24%,
+      rgba(241,239,228,.62) 36%,rgba(241,239,228,.16) 46%,
+      rgba(241,239,228,0) 54%),
+    linear-gradient(90deg,
+      rgba(241,239,228,.88) 0%,rgba(241,239,228,.72) 18%,
+      rgba(241,239,228,.30) 32%,rgba(241,239,228,0) 46%);
+}
+
+/* ═══════════════════════ 05 · ROAD TO THE RACE ═══════════════════════════ */
+[data-theme="light"] .ch-road{
+  background:
+    radial-gradient(120% 90% at 12% 0%,rgba(239,199,98,.16),transparent 54%),
+    linear-gradient(180deg,#f4f2e9,#eceadf);
+}
+[data-theme="light"] .ch-road::after{
+  opacity:.42;
+  background-image:linear-gradient(rgba(48,62,63,.085) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(48,62,63,.085) 1px,transparent 1px);
+}
+[data-theme="light"] .road-line{background:rgba(48,62,63,.20)}
+[data-theme="light"] .road-node{
+  border:2px solid rgba(48,62,63,.34);background:var(--rr-void);
+}
+[data-theme="light"] .ch-road.is-current .road-node{
+  border-color:#8a681b;
+  background:linear-gradient(135deg,#efc762,#c9a43c 48%,#8a681b);
+}
+[data-theme="light"] .phases li{border-top:2px solid rgba(48,62,63,.34)}
+[data-theme="light"] .ph-n{color:rgba(48,62,63,.24)}
+[data-theme="light"] .ch-road.is-current .phases li{border-top-color:rgba(201,164,60,.85)}
+[data-theme="light"] .countdown li{border-bottom:1px solid var(--rr-line)}
+
+/* ════════════════════════════ 06 · PARTNERS ══════════════════════════════ */
+[data-theme="light"] .ch-partners{
+  background:radial-gradient(110% 80% at 82% 12%,rgba(239,199,98,.18),transparent 58%),
+             linear-gradient(180deg,#f3f1e8,#ebe9de);
+}
+[data-theme="light"] .tier{
+  border:1px solid rgba(48,62,63,.24);
+  background:rgba(255,255,255,.66);
+}
+[data-theme="light"] .tier:hover{
+  border-color:rgba(48,62,63,.66);background:rgba(255,255,255,.92);
+}
+/* the featured tier is the fourth dark-green surface — it holds the RJ mark */
+[data-theme="light"] .tier.is-taken{
+  border-color:#303e3f;
+  background:linear-gradient(180deg,#37474a,#2e3c3d);
+}
+[data-theme="light"] .tier.is-taken .tier-k{color:#f2efe6}
+[data-theme="light"] .tier.is-taken .tier-v{color:var(--rr-honey)}
+[data-theme="light"] .tier.is-taken .tier-v i{color:rgba(242,239,230,.6)}
+[data-theme="light"] .tier.is-taken .tier-d{color:rgba(242,239,230,.78)}
+[data-theme="light"] .tier.is-taken .tier-partner b{color:#f2efe6}
+[data-theme="light"] .tier-slot{
+  color:var(--rr-text-dim);border:1px solid rgba(48,62,63,.34);
+}
+[data-theme="light"] .partners-foot{color:var(--rr-text-dim)}
+
+/* ════════════════════════════ 07 · LOCATION ══════════════════════════════ */
+[data-theme="light"] .ch-location{background:var(--rr-bg)}
+
+/* ═══════════════════════════ CHAPTER RAIL ════════════════════════════════ */
+/* the rail sits directly on the footage — no paper strip behind it at all */
+[data-theme="light"] .rail::before{background:none}
+/* the spine reads as drawn gold wire, not a grey line */
+[data-theme="light"] .rail-fuel{
+  background:linear-gradient(180deg,
+    rgba(107,79,18,.22),rgba(150,114,30,.44) 18%,rgba(193,154,51,.62) 42%,
+    rgba(226,192,105,.74) 50%,rgba(193,154,51,.62) 58%,
+    rgba(150,114,30,.44) 82%,rgba(107,79,18,.22));
+}
+/* the fill is the same metal, upright */
+[data-theme="light"] .rail-fuel i{background:var(--metal-v)}
+[data-theme="light"] .rail-fuel::after{
+  background:linear-gradient(180deg,
+    rgba(255,248,225,0),rgba(255,248,225,.85),rgba(255,248,225,0));
+}
+/* the knob riding the fill head: a turned bead, lit from the upper left */
+[data-theme="light"] .rail-fuel i::after{
+  background:radial-gradient(circle at 34% 30%,#f6e2a8,#d8b451 52%,#8a6a18);
+  box-shadow:0 0 0 1px rgba(241,239,228,.88),0 2px 7px rgba(38,48,48,.30);
+}
+[data-theme="light"] .rail button{color:var(--rr-text-dim)}
+[data-theme="light"] .rail button:hover{color:var(--rr-text)}
+[data-theme="light"] .rail li.is-here button{color:var(--rr-red)}
+[data-theme="light"] .rail button em{color:var(--rr-text);text-shadow:none}
+/* inactive ticks step back so the active one is unmistakable */
+[data-theme="light"] .rail button i{background:rgba(48,62,63,.42)}
+/* THE ACTIVE INDICATOR — metal plus one soft honey radiance. This is the
+   single strongest gold moment in the theme, and it is 44x2 pixels. */
+[data-theme="light"] .rail li.is-here button i{
+  background:var(--metal-h);
+  box-shadow:var(--gold-lift);
+}
+[data-theme="light"] .rail li.is-here button em::after{
+  height:2px;background:var(--metal-h);
+}
+/* the key number: deep honey ink with a paper catch-light under it, so it
+   reads as struck into the page. Metallic FILL is never used on type over
+   cream — its highlight stops measure 1.2:1 there. */
+/* clean and minimal: no halo on the numerals, no outline on the ticks. The
+   gold treatment on the active mark stays exactly as it was. */
+[data-theme="light"] .rail-num{text-shadow:none}
+[data-theme="light"] .rail li.is-here .rail-num{color:var(--rr-red);text-shadow:none}
+[data-theme="light"] .rail button i{box-shadow:none}
+[data-theme="light"] .rail li.is-here button i{box-shadow:var(--gold-lift)}
+[data-theme="light"] .rail li.is-here button i::after{
+  background:linear-gradient(90deg,
+    rgba(255,248,225,0),rgba(255,248,225,.92),rgba(255,248,225,0));
+}
+
+/* ═════════════════════════ HOME / PAGER CONTROLS ═════════════════════════ */
+[data-theme="light"] .home-ctl{
+  border:1px solid rgba(48,62,63,.34);
+  background:rgba(255,255,255,.90);
+  color:var(--rr-text);
+  box-shadow:0 4px 14px rgba(38,48,48,.10);
+}
+[data-theme="light"] .home-ctl:hover{
+  border-color:#303e3f;background:#ffffff;
+}
+[data-theme="light"] .pager{
+  color:var(--rr-text-dim);
+  text-shadow:0 0 10px rgba(244,242,233,.96),0 0 4px rgba(244,242,233,.92);
+}
+[data-theme="light"] .pager svg{
+  filter:drop-shadow(0 0 4px rgba(244,242,233,.95))
+         drop-shadow(0 0 2px rgba(244,242,233,.9));
+}
+[data-theme="light"] .pager:hover{color:var(--rr-red)}
+[data-theme="light"] .scroll-hint{
+  color:var(--rr-text);
+  text-shadow:0 0 10px rgba(244,242,233,.96),0 0 4px rgba(244,242,233,.92);
+}
+[data-theme="light"] .scroll-hint svg{
+  filter:drop-shadow(0 0 4px rgba(244,242,233,.95));
+}
+
+/* ══════════════════════════════ MENU DRAWER ══════════════════════════════
+   The drawer stays dark green on purpose: it is the second of the three green
+   surfaces, it makes the RJ credit in its foot legible, and a dark panel
+   sliding over a cream page is the clearest possible state change. */
+[data-theme="light"] .menu::before{background:rgba(48,62,63,.34)}
+[data-theme="light"] .menu-panel{
+  background:linear-gradient(200deg,#37474a 0%,#2b3839 62%,#242f30 100%);
+  border-left:1px solid rgba(239,199,98,.6);
+}
+[data-theme="light"] .menu-head{color:rgba(242,239,230,.7)}
+[data-theme="light"] .menu-list button{
+  border-bottom:1px solid rgba(242,239,230,.16);color:rgba(242,239,230,.86);
+}
+[data-theme="light"] .menu-list button:hover,
+[data-theme="light"] .menu-list li.is-here button{color:var(--rr-honey)}
+[data-theme="light"] .menu-foot{color:rgba(242,239,230,.62)}
+[data-theme="light"] .menu-powered b{color:#f2efe6}
+
+/* ═══════════════════════════ BROCHURE READER ═════════════════════════════ */
+[data-theme="light"] .reader{background:rgba(241,239,228,.985)}
+[data-theme="light"] .reader-top{border-bottom:1px solid var(--rr-line)}
+[data-theme="light"] .reader-top p em{color:var(--rr-red)}
+[data-theme="light"] .reader-stage img{box-shadow:0 18px 50px rgba(38,48,48,.22)}
+[data-theme="light"] .reader-close:hover{color:var(--rr-red)}
+[data-theme="light"] .reader-foot button:hover{color:var(--rr-red)}
+[data-theme="light"] .reader-foot{border-top:1px solid var(--rr-line)}
+
+/* ═════════════════════════ CHAPTER TRANSITION VEIL ═══════════════════════ */
+[data-theme="light"] .veil-sheet{
+  background:linear-gradient(100deg,
+    rgba(241,239,228,0) 0%,rgba(201,164,60,.55) 11%,rgba(244,242,233,.97) 16%,
+    rgba(241,239,228,.99) 38%,rgba(238,236,226,.99) 62%,rgba(241,239,228,.97) 84%,
+    rgba(201,164,60,.55) 89%,rgba(241,239,228,0) 100%);
+}
+[data-theme="light"] .veil-bar{background:rgba(48,62,63,.22)}
+[data-theme="light"] .veil-word{color:var(--rr-text);text-shadow:none}
+
+/* ═══════════════════════════ IGNITION / BOOT ═════════════════════════════
+   Same dial, same 0-200 sweep, same timing — only the paint changes. */
+[data-theme="light"] .boot{
+  background:radial-gradient(70% 60% at 50% 46%,#f7f5ec 0%,#eae7dc 70%);
+}
+[data-theme="light"] .tach-track{stroke:rgba(48,62,63,.16)}
+[data-theme="light"] .tach-bezel{stroke:rgba(48,62,63,.18)}
+[data-theme="light"] .tach-bezel-in{stroke:rgba(48,62,63,.12)}
+[data-theme="light"] .tach-ticks line{stroke:rgba(48,62,63,.34)}
+[data-theme="light"] .tach-ticks line.maj{stroke:rgba(48,62,63,.58)}
+[data-theme="light"] .tach-ticks line.lab{stroke:rgba(48,62,63,.86)}
+[data-theme="light"] .tach-nums text{fill:rgba(48,62,63,.72)}
+[data-theme="light"] .tach-nums text.red{fill:#8a681b}
+[data-theme="light"] .tach-needle{
+  filter:drop-shadow(0 1px 3px rgba(38,48,48,.34)) drop-shadow(0 0 4px rgba(201,164,60,.42));
+}
+[data-theme="light"] .tach-boss{fill:#303e3f;stroke:rgba(201,164,60,.7)}
+[data-theme="light"] .tach-hub{fill:#1b2423;stroke:rgba(239,199,98,.9)}
+[data-theme="light"] .boot-rpm{color:var(--rr-text)}
+[data-theme="light"] .boot-unit,
+[data-theme="light"] .boot-word{color:var(--rr-text-dim)}
+[data-theme="light"] .boot-brand{color:var(--rr-red)}
+
+/* ══════════════════════════ THEME SWITCH (review) ════════════════════════ */
+[data-theme="light"] .theme-sw{border-color:rgba(242,239,230,.34)}
+[data-theme="light"] .theme-sw b{background:rgba(242,239,230,.14);color:rgba(242,239,230,.62)}
+[data-theme="light"] .theme-sw b.on{background:var(--rr-honey);color:#26312f}
+
+/* ══════════════════════ NARROW DESKTOP · 761-1120px ══════════════════════
+   The copy column takes a larger share of a narrow window than it does of a
+   wide one, so the paper reaches further across before the frame opens. Same
+   idea, same shape — just re-proportioned to the viewport. */
+@media (min-width:761px) and (max-width:1120px) and (min-height:521px){
+  [data-theme="light"] .hero-scrim,
+  [data-theme="light"] .film-scrim-left,
+  [data-theme="light"] .film-scrim-full,
+  [data-theme="light"] .ch-race .film-scrim-full,
+  [data-theme="light"] .ch-partners::before{
+    background:
+      linear-gradient(90deg,
+        rgba(48,62,63,0) 60%,rgba(48,62,63,.045) 67%,rgba(48,62,63,0) 75%),
+      linear-gradient(90deg,
+        rgba(241,239,228,.955) 0%,rgba(241,239,228,.93) 30%,
+        rgba(241,239,228,.74) 44%,rgba(241,239,228,.28) 58%,
+        rgba(241,239,228,0) 70%),
+      linear-gradient(0deg,rgba(241,239,228,.34),rgba(241,239,228,0) 20%);
+  }
+  [data-theme="light"] .film-scrim-deep,
+  [data-theme="light"] .ch-location .film-scrim-deep{
+    background:
+      linear-gradient(90deg,
+        rgba(48,62,63,0) 60%,rgba(48,62,63,.045) 67%,rgba(48,62,63,0) 75%),
+      linear-gradient(90deg,
+        rgba(241,239,228,.955) 0%,rgba(241,239,228,.93) 30%,
+        rgba(241,239,228,.72) 44%,rgba(241,239,228,.26) 58%,
+        rgba(241,239,228,0) 70%),
+      radial-gradient(60% 52% at 77% 80%,
+        rgba(241,239,228,.96),rgba(241,239,228,.70) 54%,rgba(241,239,228,0) 82%),
+      linear-gradient(0deg,rgba(241,239,228,.32),rgba(241,239,228,0) 20%);
+  }
+}
+
+/* ═══════════════════════════════ PHONE ═══════════════════════════════════
+   The mobile composition is written once and themed here. Every colour in it
+   resolves a custom property, so the same markup and the same utility layer
+   serve both themes — this block only has to re-pitch the ramp, the card
+   surfaces and the three places where honey-on-cream would fall to 1.4:1. */
+@media (max-width:760px),(max-height:520px) and (orientation:landscape){
+
+  [data-theme="light"] .chrome::before{
+    background:linear-gradient(180deg,#303e3f 0%,#303e3f 74%,#2b3839 100%);
+  }
+  [data-theme="light"] .rail{
+    --seg-off:rgba(242,239,230,.26);
+    --seg-on:var(--metal-on-dark);
+    /* the rail rides the dark-green header band in this theme, so the hover
+       mark takes the honey highlight rather than the gold INK, which is
+       mixed for cream and would disappear against #303e3f */
+    --seg-hover:var(--rr-honey);
+  }
+  [data-theme="light"] .rail button i{box-shadow:none}
+  [data-theme="light"] .rail li.is-here button i{box-shadow:none}
+  /* the indicator sits on the chapter's own top wash, not on the header, so
+     it takes the page's supporting tone rather than the on-green one */
+  /* on the dark-green band, exactly as the desktop chapter tag is */
+  [data-theme="light"] .rail button em{
+    color:rgba(242,239,230,.78);text-shadow:none;
+  }
+
+  /* ── THE RAMP ──
+     Cream instead of teal, and pitched a shade lighter: dark ink needs less
+     ground under it than light ink does, and the picture keeps more of the
+     frame because of it. */
+  [data-theme="light"] .mob::before{
+    background:linear-gradient(180deg,
+      rgba(241,239,228,.62) 0%,rgba(241,239,228,.24) 9%,rgba(241,239,228,0) 22%);
+  }
+  [data-theme="light"] .mob-body::before{
+    background:linear-gradient(180deg,
+      rgba(241,239,228,0) 0px,rgba(241,239,228,.48) 44px,rgba(241,239,228,.86) 82px,
+      rgba(242,240,229,.94) 158px,rgba(243,241,231,.97) 100%);
+  }
+  [data-theme="light"] .mob{
+    --card-bg:rgba(48,62,63,.065);
+    --card-line:rgba(48,62,63,.30);
+    --sheet-bg:linear-gradient(180deg,#f6f4ec,#efece1);
+  }
+  /* the gold INK, not the honey highlight: honey on cream measures 1.4:1 */
+  [data-theme="light"] .ch{--rr-red:#6b4f12}
+  [data-theme="light"] .mob-title,
+  [data-theme="light"] .mob-hero{text-shadow:none}
+  [data-theme="light"] .mob-hero em{
+    background:var(--metal-h);
+    -webkit-background-clip:text;background-clip:text;
+    filter:none;
+  }
+  [data-theme="light"] .mob-link{
+    color:var(--rr-text);text-decoration-color:rgba(107,79,18,.5);
+  }
+  [data-theme="light"] .mob-sheet-btn,
+  [data-theme="light"] .mob-taken{color:var(--rr-red)}
+  /* the one key on the screen takes the approved light register treatment */
+  [data-theme="light"] .mob-cta{
+    background:linear-gradient(180deg,#f4d98d 0%,#efc762 42%,#e3ba4e 58%,#d9a933 100%);
+    border:1px solid rgba(107,79,18,.55);
+    color:#26312f;
+    box-shadow:inset 0 1px 0 rgba(255,252,238,.78),0 8px 22px rgba(24,32,32,.22);
+  }
+  /* the filled tier stays the dark-green surface the site already gives it —
+     it is the one that carries the RJ mark, which is drawn light */
+  [data-theme="light"] .mob-card.is-taken{
+    background:linear-gradient(180deg,#37474a,#2e3c3d);
+    border-top-color:var(--rr-honey);
+  }
+  [data-theme="light"] .mob-card.is-taken .text-dim,
+  [data-theme="light"] .mob-card.is-taken b{color:#f2efe6}
+  [data-theme="light"] .mob-card.is-taken .text-gold,
+  [data-theme="light"] .mob-card.is-taken .mob-price{color:var(--rr-honey)}
+  [data-theme="light"] .mob-card.is-taken .mob-taken{color:var(--rr-honey)}
+  [data-theme="light"] .mob-card.is-taken .mob-price i{color:rgba(242,239,230,.6)}
+  /* the one card in the light theme that is drawn on a DARK surface, so the
+     shared hover hairline — gold ink, mixed for cream — would vanish on it.
+     Same rule, same weight, honey instead of ink. Hover devices only. */
+  @media (hover:hover) and (pointer:fine){
+    [data-theme="light"] .mob-card.is-taken:hover{
+      box-shadow:inset 0 -1px 0 var(--rr-honey);
+    }
+  }
+  [data-theme="light"] .mob-sheet{border-top-color:rgba(107,79,18,.42)}
+  [data-theme="light"] .mob-sheet li+li{border-top-color:rgba(48,62,63,.16)}
+  [data-theme="light"] .mob-sheet-scrim{background:rgba(38,48,48,.42)}
+
+  /* ── THE TWO UNDER-FILMS ──
+     ROAD and PARTNERS print through a multiply on desktop because a copy
+     column sits across their whole frame there and the footage has to give
+     way to it. On a phone no copy sits on the picture at all — the ramp at
+     the foot does that job — so the multiply comes off and both clips run at
+     full colour like the other five. Multiply was costing them their grade. */
+  [data-theme="light"] .ch-road .film-under,
+  [data-theme="light"] .ch-partners .film-under{
+    mix-blend-mode:normal;opacity:1;
+  }
+  /* their painted chapter paper was there to protect a copy column that no
+     longer sits on the footage — the ramp is the only overlay now */
+  [data-theme="light"] .ch-road::before,
+  [data-theme="light"] .ch-partners::before{display:none}
+}
+
+/* ───────────────────────────── PHONE · LANDSCAPE ───────────────────────── */
+@media (max-height:520px) and (orientation:landscape){
+  [data-theme="light"] .mob-body::before{
+    background:linear-gradient(180deg,
+      rgba(241,239,228,0) 0px,rgba(241,239,228,.44) 30px,rgba(241,239,228,.80) 58px,
+      rgba(242,240,229,.93) 112px,rgba(243,241,231,.97) 100%);
+  }
+}

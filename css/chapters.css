@@ -1,0 +1,1340 @@
+/* ===========================================================================
+   CHAPTER DECK
+   Every chapter is one viewport. Only the current chapter is painted; the
+   others sit inert with visibility:hidden so nothing composites off-screen.
+   =========================================================================== */
+.deck{position:absolute;inset:0}
+
+.ch{
+  position:absolute;inset:0;
+  overflow:hidden;
+  visibility:hidden;
+  opacity:0;
+  contain:layout paint;
+  transform:translate3d(0,0,0) scale(1.03);
+  /* a longer, gentler cross-fade: the outgoing chapter holds its type well
+     into the sweep instead of vanishing, and the incoming one settles rather
+     than snapping. swapAt/doneAt and the architecture are untouched. */
+  transition:opacity .78s cubic-bezier(.32,.06,.24,1),
+             transform .82s var(--ease-drive),
+             visibility 0s linear .82s;
+}
+.ch.is-current{
+  visibility:visible;opacity:1;transform:translate3d(0,0,0) scale(1);
+  transition-delay:0s;
+}
+/* Promotion is handled in go(), which sets it on the two chapters involved
+   BEFORE the sweep starts and clears it when the sweep ends — applying it at
+   the moment the class flips is too late to avoid a re-raster.
+   Only the two genuinely looping animations inside a chapter are parked, and
+   they are named directly so the class flip does not force a style recalc
+   across every descendant of six chapters. */
+.ch:not(.is-current) .scroll-hint,
+.ch:not(.is-current) .road-node{animation-play-state:paused}
+/* leaving forwards drifts left, leaving backwards drifts right: the deck
+   keeps a sense of direction without a literal carousel slide */
+.ch.is-out-fwd{transform:translate3d(-3.2%,0,0) scale(.985)}
+.ch.is-out-back{transform:translate3d(3.2%,0,0) scale(.985)}
+
+/* content inside a chapter arrives just behind the chapter itself */
+.ch [data-stagger]{
+  opacity:0;transform:translate3d(0,26px,0);
+  transition:opacity .80s cubic-bezier(.32,.06,.24,1),
+             transform .95s cubic-bezier(.28,.08,.22,1);
+}
+.ch.is-current [data-stagger]{opacity:1;transform:none}
+
+/* right edge is owned by the chapter rail; bottom-left by the home control */
+/* the right column must clear the rail AND the rail's active label, which
+   overhangs to its left — the old reserve was ~20px short and the snapshot
+   panel and the metrics row were both running under it */
+.ch{--gutter-r:calc(var(--gutter) + clamp(58px,6.2vw,112px));--safe-b:clamp(78px,11vh,104px)}
+
+/* ═══════════════════════════ SHARED CHAPTER TYPE ═════════════════════════ */
+.kicker{
+  display:flex;align-items:center;gap:14px;
+  font-size:clamp(10px,.72vw,12px);font-weight:700;letter-spacing:.24em;
+  color:var(--rr-red);
+}
+.kicker i{display:block;width:clamp(26px,3vw,48px);height:2px;background:var(--metal-h)}
+
+/* chapter signature: position, then name, then headline — the same three-step
+   read on all seven chapters. No container, no box: the number carries the red
+   accent, a hairline separates it from the total, and the name sits under it. */
+.ch-sig{
+  display:flex;align-items:center;gap:8px;
+  margin-top:clamp(16px,2.2vh,30px);
+  font-size:12.5px;font-weight:700;letter-spacing:.2em;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 4px rgba(0,0,0,.7);
+}
+/* HOME is the pixel-approved poster and .hero-copy is vertically centred on its
+   own height, so its signature is lifted out of flow — the composition below it
+   cannot move by even a pixel */
+.ch-home .ch-sig{position:absolute;left:0;bottom:100%;margin:0 0 13px}
+.ch-sig em{font-style:normal;color:var(--rr-red)}
+.ch-sig i{display:block;width:14px;height:1px;background:var(--rr-line-strong);flex:none}
+.ch-sig span{color:var(--rr-text-faint)}
+
+.ch-eyebrow{
+  margin-top:7px;
+  font-size:clamp(13px,1.02vw,16px);font-weight:700;letter-spacing:.3em;
+  color:var(--rr-text);
+}
+.ch-title{
+  margin-top:clamp(8px,1.4vh,18px);
+  font-size:clamp(40px,5.4vw,92px);
+  line-height:.9;letter-spacing:-.03em;font-style:italic;font-weight:700;
+  color:var(--rr-text);text-transform:uppercase;
+}
+.ch-title em{color:var(--rr-red);font-style:inherit}
+.ch-lead{
+  margin-top:clamp(16px,2.4vh,30px);
+  max-width:46ch;
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:clamp(13px,1.02vw,17px);line-height:1.62;color:var(--rr-text-dim);
+}
+.ch-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:clamp(20px,3vh,38px)}
+
+/* ══════════════════════════════ BUTTONS ═════════════════════════════════ */
+.btn{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  gap:9px;overflow:hidden;
+  height:clamp(42px,4.6vh,54px);padding:0 clamp(16px,1.5vw,26px);
+  font-size:clamp(11px,.86vw,14px);font-weight:700;letter-spacing:.06em;
+  color:var(--rr-text);white-space:nowrap;
+  transition:color var(--t-hover) var(--ease-drive),
+             border-color var(--t-hover) var(--ease-drive);
+}
+.btn>span,.btn>.ico{position:relative;z-index:1}
+.btn .ico{width:14px;height:14px;flex:none;transition:transform .34s var(--ease-snap)}
+/* hover: a wipe accelerates in from the left, like traction catching */
+.btn::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:var(--rr-red);
+  transform:scaleX(0);transform-origin:left center;
+  transition:transform .42s var(--ease-drive);
+}
+/* the primary reads as a machined key: the full metal edge, a catch-light
+   along its top lip and enough shadow to sit above the footage rather than on
+   it. Size, padding and the hover wipe are untouched. */
+.btn-solid{
+  background:linear-gradient(180deg,rgba(12,74,86,.94),rgba(6,36,43,.96));
+  border:1px solid var(--rr-red);border-image:var(--metal-h) 1;color:var(--rr-red-ember);
+  box-shadow:inset 0 1px 0 rgba(251,230,168,.30),
+             0 12px 30px rgba(1,10,12,.46);
+}
+.btn-solid::before{background:var(--rr-red)}
+.btn-solid:hover{color:var(--rr-ink)}
+.btn-ghost{
+  background:linear-gradient(180deg,rgba(4,26,31,.56),rgba(2,15,19,.62));
+  border:1px solid rgba(233,186,80,.40);
+  box-shadow:inset 0 1px 0 rgba(251,230,168,.10),
+             0 8px 22px rgba(1,10,12,.34);
+}
+.btn-ghost:hover{border-color:var(--rr-red)}
+.btn:hover::before{transform:scaleX(1)}
+.btn:hover .ico{transform:translate3d(3px,-3px,0)}
+.btn-sm{height:36px;padding:0 14px;font-size:11px}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  01 · HOME                                                            ║
+   ║  The approved 1280x854 composition, rebuilt as anchored zones. The     ║
+   ║  photograph bleeds edge-to-edge; the artwork and type scale uniformly  ║
+   ║  by --u so nothing is ever stretched.                                  ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+.ch-home{background:var(--rr-void)}
+
+/* keeps the left column legible however far the photo bleeds */
+.hero-scrim{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(2,17,20,.93) 0%,rgba(3,22,26,.80) 24%,rgba(4,29,34,.38) 46%,rgba(4,29,34,0) 68%),
+    linear-gradient(180deg,rgba(2,17,20,.60) 0%,rgba(2,17,20,0) 20%),
+    linear-gradient(0deg,rgba(2,17,20,.82) 0%,rgba(2,17,20,0) 26%),
+    radial-gradient(46% 42% at 85% 72%,rgba(2,17,20,.66),rgba(2,17,20,0) 72%),
+    radial-gradient(120% 80% at 68% 45%,rgba(10,66,78,.34),transparent 66%),
+    radial-gradient(96% 84% at 50% 50%,rgba(6,38,45,0) 44%,rgba(3,25,29,.44) 100%);
+}
+
+
+.hero-copy{
+  position:absolute;z-index:var(--z-content);
+  left:var(--gutter);
+  top:calc(50% + clamp(20px,3.5vh,40px));
+  transform:translateY(-50%);
+  width:min(54vw,780px);
+}
+
+.eyebrow{
+  position:relative;
+  padding-left:clamp(46px,4.4vw,70px);
+  font-size:clamp(10px,.84vw,13.5px);line-height:1.3;
+  font-weight:700;letter-spacing:.32em;text-indent:.32em;
+  color:var(--rr-text-dim);
+}
+.eyebrow-ticks{
+  position:absolute;left:0;top:1px;
+  width:clamp(26px,2.4vw,36px);height:clamp(13px,1.2vw,17px);
+  background:
+    linear-gradient(105deg,transparent 34%,var(--rr-red) 34%,var(--rr-red) 52%,transparent 52%),
+    linear-gradient(105deg,transparent 62%,var(--rr-red) 62%,var(--rr-red) 80%,transparent 80%),
+    linear-gradient(105deg,transparent 6%,var(--rr-red) 6%,var(--rr-red) 24%,transparent 24%);
+}
+
+.hero-rule{
+  display:block;margin-top:clamp(16px,2.4vh,28px);
+  width:clamp(200px,22vw,330px);height:1px;
+  background:linear-gradient(90deg,var(--rr-gold-mid),var(--rr-red-bright) 22%,var(--rr-red) 46%,rgba(217,163,46,0));
+}
+.hero-place{
+  display:flex;align-items:center;gap:10px;
+  margin-top:clamp(17px,2.5vh,28px);
+}
+.hero-place .pin{width:13px;height:18px;flex:none}
+.hero-place span{
+  font-size:clamp(14px,1.22vw,20px);line-height:1.1;
+  font-weight:700;letter-spacing:.11em;color:var(--rr-text);
+}
+.hero-note{
+  margin-top:clamp(6px,.85vh,10px);
+  font-size:clamp(9px,.72vw,11px);line-height:1.2;
+  font-weight:700;letter-spacing:.26em;text-indent:.26em;color:var(--rr-text-faint);
+}
+.hero-cta{
+  display:flex;flex-wrap:nowrap;align-items:center;
+  gap:calc(13px * var(--u));margin-top:calc(30px * var(--u));
+  width:max-content;
+}
+.hero-cta .btn{flex:none}
+.hero-cta .btn-solid{margin-right:calc(9px * var(--u))}
+.hero-cta .btn{height:calc(53px * var(--u));padding:0 calc(22px * var(--u));font-size:calc(18px * var(--u))}
+.hero-cta .btn span{transform:scaleX(.9)}
+.hero-cta .ico{width:calc(15px * var(--u));height:calc(15px * var(--u))}
+
+/* the hero's right-hand column is reserved for the sponsor lockup: the
+   statistics bar stops clear of it and the rail keeps a dark ground. */
+
+
+/* ── HOME · live campaign typography. Every hero bitmap is gone: the video is
+      the only image in this chapter, and the wordmark is set in the site's own
+      condensed face so it themes with everything else. ──────────────────── */
+.headline{margin-top:clamp(10px,1.6vh,22px);line-height:.86}
+.headline .h-1,.headline .h-2{
+  display:block;
+  font-size:clamp(56px,7.2vw,124px);
+  font-style:italic;font-weight:700;letter-spacing:-.028em;
+  text-transform:uppercase;
+}
+.headline .h-1{color:var(--rr-text);text-shadow:0 2px 22px rgba(2,17,20,.65)}
+/* the gold half is a true metallic gradient, not a flat fill */
+.headline .h-2{
+  background:linear-gradient(166deg,
+    var(--rr-red-bright) 0%,var(--rr-red) 13%,var(--rr-gold-mid) 31%,
+    var(--rr-red-bright) 40%,var(--rr-red-ember) 43%,var(--rr-red-bright) 46%,
+    var(--rr-red) 56%,var(--rr-gold-mid) 72%,var(--rr-red-deep) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 16px rgba(2,17,20,.6));
+}
+.hero-line{
+  margin-top:clamp(12px,1.8vh,22px);
+  font-size:clamp(13px,1.16vw,19px);font-weight:700;letter-spacing:.30em;
+  color:var(--rr-text);text-shadow:0 1px 10px rgba(2,17,20,.8);
+}
+.hero-date{margin-top:clamp(6px,.9vh,11px)}
+.hero-date span{
+  font-size:clamp(15px,1.34vw,22px);font-weight:700;letter-spacing:.11em;
+  color:var(--rr-red);text-shadow:0 1px 10px rgba(2,17,20,.75);
+}
+
+.scroll-hint{
+  position:absolute;left:50%;bottom:calc(10px * var(--u));z-index:6;
+  width:34px;height:20px;margin-left:-17px;color:var(--rr-text);
+  opacity:.9;animation:hintPulse 2.6s var(--ease-drive) infinite;
+}
+.scroll-hint svg{width:100%;height:100%}
+@keyframes hintPulse{
+  0%,100%{transform:translateY(0);opacity:.45}
+  50%{transform:translateY(5px);opacity:.95}
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  FILM LAYERS — video is composition, never a boxed embed              ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+.film{position:absolute;overflow:hidden;background:#021316}
+/* ── ATMOSPHERE ────────────────────────────────────────────────────────────
+   The royal teal that ties all seven chapters together. Transparent overlay
+   only: the centre of frame is completely clear, so the footage keeps its own
+   colour, grade and sharpness. Teal collects at the edges and corners, which
+   is exactly where the interface lives. */
+.film::before{
+  content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(128% 106% at 52% 46%,
+      rgba(6,38,44,0) 28%,rgba(5,32,37,.34) 58%,
+      rgba(3,22,26,.68) 82%,rgba(2,13,17,.92) 100%),
+    linear-gradient(180deg,rgba(4,30,36,.44),rgba(4,30,36,0) 24%);
+}
+.film video,.film .film-poster{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+}
+.film video{opacity:0;transition:opacity .6s var(--ease-drive)}
+.film.is-playing video{opacity:1}
+.film.is-playing .film-poster{opacity:0}
+.film .film-poster{opacity:1;transition:opacity .6s var(--ease-drive)}
+
+.film-scrim{position:absolute;inset:0;z-index:2;pointer-events:none}
+.film-scrim-left{
+  background:linear-gradient(90deg,var(--rr-bg) 0%,rgba(3,24,28,.93) 32%,rgba(4,29,34,.5) 56%,rgba(4,29,34,.1) 80%),
+             linear-gradient(0deg,rgba(3,20,24,.8),transparent 42%);
+}
+.film-scrim-full{
+  background:
+    linear-gradient(90deg,rgba(2,17,20,.9) 0%,rgba(3,24,28,.66) 22%,rgba(4,29,34,.12) 44%,transparent 60%),
+    radial-gradient(120% 90% at 78% 40%,transparent 0%,rgba(5,32,38,.42) 54%,rgba(2,17,20,.9) 100%),
+    linear-gradient(180deg,rgba(2,17,20,.72),transparent 22%),
+    linear-gradient(0deg,rgba(2,17,20,.92),transparent 46%);
+}
+.film-scrim-deep{
+  background:linear-gradient(90deg,rgba(2,17,20,.95) 0%,rgba(3,24,28,.72) 40%,rgba(4,29,34,.28) 72%,rgba(3,22,26,.5) 100%),
+             linear-gradient(0deg,rgba(2,17,20,.9),transparent 52%);
+}
+.film-bleed{inset:0}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  02 · THE EVENT                                                       ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+.ch-event{background:var(--rr-bg)}
+.ch-event .film{inset:0 0 0 34%;}
+.ch-event .film::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,var(--rr-bg),transparent 26%);
+}
+/* the free band runs from the header to the metrics strip, not to the viewport
+   floor, so a plain 47% sat the block ~40px low against it */
+.ch-body{
+  position:absolute;left:var(--gutter);top:50%;transform:translateY(-50%);
+  width:min(52ch,44vw);z-index:3;
+}
+.ch-body .ch-actions{flex-wrap:nowrap;width:max-content}
+.ch-body .ch-actions .btn{flex:none}
+.snapshot{
+  position:absolute;right:var(--gutter-r);bottom:var(--safe-b);z-index:3;
+  width:min(310px,26vw);
+  border-top:1px solid var(--rr-line-strong);
+  /* no backdrop-filter: sampling and blurring a playing video every frame was
+     a measurable cost. On this dark ground an opaque petrol fill is visually
+     equivalent and composites for free. */
+  background:linear-gradient(180deg,rgba(5,36,42,.96),rgba(3,23,27,.93));
+  box-shadow:inset 0 1px 0 rgba(251,230,168,.318);
+  padding:0 clamp(10px,1vw,16px);
+}
+.snapshot>div{
+  display:flex;justify-content:space-between;gap:16px;
+  padding:clamp(9px,1.3vh,14px) 0;border-bottom:1px solid var(--rr-line);
+}
+.snapshot dt{
+  font-size:10px;font-weight:700;letter-spacing:.2em;color:var(--rr-text-dim);
+  flex:none;padding-top:2px;
+}
+.snapshot dd{
+  font-family:Arial,Helvetica,sans-serif;font-size:clamp(11px,.82vw,13px);
+  line-height:1.4;color:var(--rr-text);text-align:right;
+}
+/* retired: the chapter rail occupies this edge and reads better alone */
+.side-note{display:none}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  03 · EXPERIENCE — portrait footage kept portrait, by design          ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+.ch-exp{background:var(--rr-bg)}
+.ch-exp::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(90% 70% at 78% 40%,rgba(240,200,92,.225),transparent 60%);
+}
+.exp-grid{
+  position:absolute;inset:0;
+  display:grid;
+  grid-template-columns:minmax(280px,1.05fr) minmax(300px,1.15fr) minmax(320px,1.25fr);
+  align-items:center;
+  gap:clamp(22px,3vw,60px);
+  padding:calc(var(--header-h) + 2vh) var(--gutter) clamp(28px,5vh,60px);
+}
+.exp-copy{align-self:center}
+.exp-list{list-style:none;display:grid;gap:clamp(9px,1.5vh,18px)}
+.exp-list li{
+  position:relative;padding:clamp(9px,1.4vh,15px) 0 clamp(9px,1.4vh,15px) 46px;
+  border-top:1px solid var(--rr-line);
+  transition:border-color var(--t-hover) var(--ease-drive);
+}
+.exp-list li::after{
+  content:'';position:absolute;left:0;top:-1px;height:1px;width:0;
+  background:var(--rr-red);transition:width .5s var(--ease-drive);
+}
+.exp-list li:hover::after{width:100%}
+.exp-list li:hover{border-color:transparent}
+.exp-n{
+  position:absolute;left:0;top:clamp(11px,1.6vh,18px);
+  font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--rr-red);
+}
+.exp-list h3{
+  font-size:clamp(14px,1.24vw,20px);font-weight:700;letter-spacing:.06em;
+  color:var(--rr-text);font-style:italic;
+  transition:transform .42s var(--ease-drive);
+}
+.exp-list li:hover h3{transform:translateX(7px)}
+.exp-list p{
+  margin-top:5px;font-family:Arial,Helvetica,sans-serif;
+  font-size:clamp(10.5px,.8vw,13px);line-height:1.5;color:var(--rr-text-dim);
+}
+.exp-reels{
+  display:grid;grid-template-columns:1fr 1fr;gap:clamp(12px,1.4vw,22px);
+  height:min(72vh,620px);align-self:center;
+}
+.reel{position:relative;overflow:hidden;background:#03181c}
+.reel .film{inset:0}
+.reel::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(0deg,rgba(3,19,23,.86),transparent 42%);
+  pointer-events:none;
+}
+.reel figcaption{
+  position:absolute;left:14px;bottom:13px;z-index:2;
+  font-size:10px;font-weight:700;letter-spacing:.24em;color:var(--rr-text);
+}
+.reel-a{transform:translateY(-4%)}
+.reel-b{transform:translateY(4%)}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  04 · THE RACE                                                        ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+.ch-race{background:var(--rr-void)}
+.race-head{
+  position:absolute;left:var(--gutter);top:calc(var(--header-h) + 4vh);z-index:3;
+  max-width:44vw;
+}
+.classes{
+  position:absolute;left:var(--gutter);bottom:var(--safe-b);z-index:3;
+  list-style:none;width:min(430px,38vw);
+}
+.classes li{
+  display:flex;flex-direction:column;gap:3px;
+  padding:clamp(7px,1.1vh,12px) 0;border-bottom:1px solid var(--rr-line);
+  transition:padding-left .38s var(--ease-drive);
+}
+.classes li:hover{padding-left:12px}
+.classes b{font-size:clamp(11px,.92vw,14px);letter-spacing:.1em;color:var(--rr-text)}
+.classes span{
+  font-family:Arial,Helvetica,sans-serif;font-size:clamp(10px,.74vw,12px);
+  color:var(--rr-text-faint);
+}
+.raceday{
+  position:absolute;right:var(--gutter-r);top:50%;transform:translateY(-46%);z-index:3;
+  width:min(340px,29vw);
+  /* was .82/.62 flat — near-opaque and the only surface here reading as a solid
+     panel. Same instrument-glass treatment as the rail: the footage stays legible
+     through it, with a sampled blur and a hairline catch-light instead of mass. */
+  background:linear-gradient(180deg,rgba(6,39,46,.93),rgba(3,21,25,.88));
+  box-shadow:inset 0 1px 0 rgba(251,230,168,.272);
+  border:1px solid var(--rr-line);
+  padding:clamp(16px,2.4vh,26px) clamp(16px,1.6vw,24px);
+}
+.raceday-h{
+  font-size:10px;font-weight:700;letter-spacing:.24em;color:var(--rr-red);
+  padding-bottom:12px;border-bottom:1px solid var(--rr-line);
+}
+.raceday ol{list-style:none;margin-top:6px}
+.raceday li,.countdown li{
+  display:flex;gap:14px;align-items:baseline;
+  padding:clamp(4px,.7vh,8px) 0;
+  font-family:Arial,Helvetica,sans-serif;font-size:clamp(10px,.76vw,12.5px);
+  color:var(--rr-text-dim);
+}
+.raceday em,.countdown em{
+  flex:none;width:58px;font-family:'HerosCn',sans-serif;font-style:italic;
+  font-weight:700;color:var(--rr-text);letter-spacing:.02em;
+}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  05 · ROAD TO THE RACE — the one chapter with no footage, on purpose  ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+.ch-road{
+  background:
+    radial-gradient(120% 90% at 12% 0%,rgba(10,66,78,.34),transparent 52%),
+    linear-gradient(180deg,#062127,#020d10);
+}
+.ch-road::after{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(96,180,212,.085) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(96,180,212,.085) 1px,transparent 1px);
+  background-size:72px 72px;
+  mask-image:radial-gradient(85% 70% at 30% 40%,#000,transparent 78%);
+}
+.road-head{
+  position:absolute;left:var(--gutter);top:calc(var(--header-h) + 4.5vh);z-index:3;
+  max-width:38vw;
+}
+.phases{
+  position:absolute;left:var(--gutter);right:var(--gutter-r);
+  bottom:calc(var(--safe-b) + clamp(56px,9vh,104px));z-index:3;
+  list-style:none;display:grid;grid-template-columns:repeat(5,1fr);
+  gap:clamp(10px,1.4vw,26px);
+}
+.phases li{
+  position:relative;padding-top:clamp(14px,2vh,22px);
+  border-top:2px solid rgba(240,200,92,.566);
+  transition:border-color .42s var(--ease-drive);
+}
+.phases li::before{
+  content:'';position:absolute;left:0;top:-2px;height:2px;width:0;
+  background:var(--metal-h);transition:width .6s var(--ease-drive);
+}
+.phases li:hover::before{width:100%}
+.ph-n{
+  display:block;font-size:clamp(20px,2.4vw,38px);font-style:italic;font-weight:700;
+  color:rgba(96,180,212,.24);line-height:1;
+  transition:color .42s var(--ease-drive);
+}
+.phases li:hover .ph-n{color:var(--rr-red)}
+.phases b{
+  display:block;margin-top:10px;
+  font-size:clamp(11px,.9vw,14px);letter-spacing:.1em;color:var(--rr-text);
+}
+.phases p{
+  margin-top:8px;font-family:Arial,Helvetica,sans-serif;
+  font-size:clamp(10px,.74vw,12px);line-height:1.5;color:var(--rr-text-dim);
+}
+.countdown{
+  position:absolute;left:var(--gutter);right:var(--gutter-r);
+  bottom:var(--safe-b);z-index:3;
+}
+.countdown ul{
+  list-style:none;display:flex;flex-wrap:wrap;gap:0 clamp(14px,2.4vw,44px);
+  border-top:1px solid var(--rr-line);padding-top:12px;margin-top:10px;
+}
+.countdown li{padding:0;gap:9px}
+.countdown em{width:auto;color:var(--rr-text-dim)}
+.countdown .is-goal em{color:var(--rr-red)}
+.countdown .is-goal span{color:var(--rr-text)}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  06 · PARTNERS                                                        ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+.ch-partners{
+  background:radial-gradient(110% 80% at 82% 12%,rgba(10,66,78,.30),transparent 56%),
+             linear-gradient(180deg,#051b20,#020d10);
+}
+.partners-head{
+  position:absolute;left:var(--gutter);top:calc(var(--header-h) + 4vh);z-index:3;
+  width:min(38ch,34vw);
+}
+.tiers{
+  position:absolute;right:var(--gutter-r);top:calc(var(--header-h) + 3vh);
+  bottom:var(--safe-b);z-index:3;
+  width:min(660px,52vw);
+  display:grid;grid-template-rows:repeat(5,1fr);gap:clamp(6px,.9vh,12px);
+}
+.tier{
+  position:relative;display:grid;
+  grid-template-columns:minmax(120px,1.1fr) minmax(90px,.7fr) minmax(180px,2fr) auto;
+  align-items:center;gap:clamp(10px,1.4vw,26px);
+  padding:0 clamp(14px,1.4vw,22px);
+  border:1px solid var(--rr-line);
+  background:rgba(5,29,34,.52);
+  overflow:hidden;
+  transition:border-color .4s var(--ease-drive),background .4s var(--ease-drive);
+}
+.tier::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--metal-v);transform:scaleY(0);transform-origin:top;
+  transition:transform .46s var(--ease-drive);
+}
+.tier:hover{border-color:rgba(240,200,92,.92);background:rgba(8,42,49,.72)}
+.tier:hover::before{transform:scaleY(1)}
+.tier-k{font-size:clamp(10px,.82vw,13px);font-weight:700;letter-spacing:.14em;color:var(--rr-text)}
+.tier-v{
+  font-size:clamp(14px,1.36vw,22px);font-style:italic;font-weight:700;color:var(--rr-red);
+  white-space:nowrap;
+}
+.tier-v i{font-size:.5em;font-style:normal;letter-spacing:.1em;color:var(--rr-text-faint)}
+.tier-d{
+  font-family:Arial,Helvetica,sans-serif;font-size:clamp(10px,.72vw,12px);
+  line-height:1.45;color:var(--rr-text-dim);
+}
+.tier-slot{
+  font-size:10px;font-weight:700;letter-spacing:.18em;color:var(--rr-text-faint);
+  border:1px solid var(--rr-line);padding:5px 10px;white-space:nowrap;
+}
+.tier.is-taken{border-color:rgba(240,200,92,.783);background:rgba(7,37,44,.55)}
+.tier.is-taken::before{transform:scaleY(1)}
+.tier-partner{display:flex;align-items:center;gap:13px;white-space:nowrap}
+/* the RJ mark ships exactly as supplied — no filter, no recolour, no plate.
+   It uses the shared lit carrier defined in chrome.css. */
+.tier-partner .rj-lit{--rj:34px}
+.tier-partner b{font-size:11px;letter-spacing:.14em;color:var(--rr-text)}
+.partners-foot{
+  position:absolute;left:var(--gutter);bottom:var(--safe-b);z-index:3;
+  width:min(40ch,32vw);
+  font-family:Arial,Helvetica,sans-serif;font-size:clamp(10px,.74vw,12.5px);
+  line-height:1.6;color:var(--rr-text-faint);
+}
+.partners-foot a{color:var(--rr-red);border-bottom:1px solid transparent;transition:border-color .3s}
+.partners-foot a:hover{border-color:var(--rr-red)}
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  07 · LOCATION                                                        ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+.ch-location{background:var(--rr-void)}
+.loc-body{
+  position:absolute;left:var(--gutter);top:50%;transform:translateY(-56%);z-index:3;
+  width:min(46ch,40vw);
+}
+.loc-facts{
+  position:absolute;right:var(--gutter-r);bottom:calc(var(--safe-b) + clamp(64px,7vh,86px));z-index:3;
+  display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));
+  gap:clamp(12px,2vh,26px) clamp(20px,3vw,54px);
+  text-align:right;
+}
+.loc-facts em{
+  display:block;font-size:clamp(20px,2.3vw,36px);font-style:italic;font-weight:700;
+  color:var(--rr-text);line-height:1;
+}
+/* these captions are the only small type in the site that lands on the aerial's
+   light warm earth rather than on a dark ground, which left them measurably
+   below every other label on the page. They now carry the same weight the site
+   already gives a caption sitting under a figure (the snapshot and countdown
+   rows), which restores them to the same footing as the rest — no size, no
+   tracking and no wording changes. */
+.loc-facts small{
+  display:block;margin-top:7px;font-size:9.5px;font-weight:700;
+  letter-spacing:.18em;color:var(--rr-text-dim);
+}
+.loc-note{
+  position:absolute;right:var(--gutter-r);bottom:var(--safe-b);z-index:3;
+  width:min(42ch,34vw);text-align:right;
+  font-family:Arial,Helvetica,sans-serif;font-size:clamp(10px,.72vw,12px);
+  line-height:1.6;color:var(--rr-text-faint);
+}
+
+/* On a desktop the chapter rail shows the current chapter's NAME, and that
+   label overhangs to the left of the marks. The right reserve is a vw term, so
+   it loses up to 54px as the window narrows while the label does not shrink —
+   which is what put the metrics under "LOCATION 07". These two blocks step in
+   by exactly what the reserve loses, plus a fixed margin, so they clear the
+   label at every desktop width. The phone layout has no such label and is not
+   affected. Shared rule: both themes use the same composition. */
+@media (min-width:761px) and (min-height:521px){
+  .loc-facts,.loc-note{
+    right:calc(var(--gutter-r) + 112px - clamp(58px,6.2vw,112px) + 40px);
+  }
+}
+
+/* THE RACE puts its headline at the top of the chapter and its six-class
+   list at the bottom. On a short desktop window the two met and "ONE TRACK."
+   ran through NOVICE / AMATEUR. The list closes up its row spacing there —
+   the type sizes, the rules and the order are untouched — which is enough to
+   put the first class clear of the headline again. Shared rule: the same
+   composition serves both themes. */
+@media (min-width:761px) and (max-height:745px) and (min-height:521px){
+  .classes li{padding:clamp(3px,.5vh,7px) 0;gap:2px}
+}
+/* the shortest laptop windows need one more step: the list closes up a little
+   further and the headline block starts a touch higher under the header */
+@media (min-width:761px) and (max-height:660px) and (min-height:521px){
+  .race-head{top:calc(var(--header-h) + 2vh)}
+  .classes li{padding:2px 0;gap:1px}
+}
+
+/* ROAD TO THE RACE anchors its five phases a viewport-proportional distance
+   above the countdown — clamp(56px,9vh,104px). Below ~820px of window height
+   that gap shrinks faster than the phase copy does, because the descriptions
+   wrap to a third line at the same time, and the APPROVAL & DELIVERY TIMELINE
+   heading printed straight through the last line of the phase text. Measured
+   at 1024x768 and 1280x640 in both themes. The gap takes a fixed floor there,
+   which is enough for the two blocks to clear each other. Nothing else about
+   the chapter changes — same anchor, same rhythm, same type — and windows
+   taller than 820px, where the proportional gap is already sufficient, are
+   not touched at all. Shared rule: both themes use the same composition. */
+@media (min-width:761px) and (max-height:820px) and (min-height:521px){
+  .phases{bottom:calc(var(--safe-b) + 96px)}
+}
+
+/* EXPERIENCE drops to a two-column grid below 1180px, so each of the six zone
+   descriptions wraps to two lines. At 1024x768 that pushed the list 59px past
+   the foot of the chapter: zone 06 fell off the screen entirely and zone 05
+   ran underneath the HOME control and the pager arrow. The rows close up
+   their vertical padding, and only in the window range where the overflow
+   actually happens. Type sizes, the hairlines, the numerals and the order are
+   all untouched. Shared rule: the same composition serves both themes. */
+@media (min-width:761px) and (max-width:1180px) and (max-height:860px) and (min-height:521px){
+  /* the list is centred in its grid row, so when it is taller than the row it
+     spills equally into the copy above AND into the chrome below. Anchoring it
+     to the top of its row inside this band spends the slack that is provably
+     there — the copy above it — instead of the corner the HOME control owns.
+     Type sizes, leading, colours and wording are untouched; only the row
+     padding closes up. */
+  .exp-list{gap:clamp(3px,.55vh,12px);align-self:start}
+  .exp-list li{padding:clamp(4px,.6vh,12px) 0 clamp(4px,.6vh,12px) 46px}
+  /* and the column's own foot takes the same safe area every other chapter
+     reserves for the HOME control in the bottom-left corner — zone 05 was
+     reading through it */
+  .exp-grid{
+    padding-top:calc(var(--header-h) + 1vh);
+    padding-bottom:clamp(84px,11vh,104px);
+    row-gap:clamp(12px,2vh,26px);
+  }
+}
+
+/* ── narrow / short desktop windows keep the composition intact ─────────── */
+@media (max-width:1180px){
+  .ch-event .film{inset:0 0 0 24%}
+  .snapshot{display:none}
+  .exp-grid{grid-template-columns:1fr 1.1fr;}
+  .exp-reels{grid-template-columns:1fr 1fr;height:min(52vh,420px)}
+  .exp-copy{grid-column:1 / -1}
+  .raceday{width:min(300px,34vw)}
+}
+/* progress spine on ROAD TO THE RACE — fills the mid-frame with the same
+   telemetry language the chapter transitions use, and marks the five phases */
+.road-track{
+  position:absolute;left:var(--gutter);right:var(--gutter-r);
+  bottom:calc(var(--safe-b) + clamp(56px,9vh,104px) + clamp(126px,20vh,196px));
+  z-index:3;height:2px;
+  display:grid;grid-template-columns:repeat(5,1fr);align-items:center;
+}
+.road-line{
+  position:absolute;left:0;right:0;top:0;height:2px;
+  background:rgba(13,67,79,.38);overflow:hidden;
+}
+.road-line i{
+  display:block;height:100%;width:0;
+  background:linear-gradient(90deg,var(--rr-red-deep),var(--rr-red),var(--rr-red-ember));
+  /* the spine used to snap; it now draws slowly and deliberately */
+  /* even progression with soft ends: no sudden acceleration, no abrupt stop.
+     The node delays below are solved from THIS curve, so each diamond lights
+     exactly as the line reaches it. */
+  transition:width 3.5s cubic-bezier(.42,0,.58,1) .5s;
+}
+.ch-road.is-current .road-line i{width:100%}
+.road-node{
+  position:relative;justify-self:start;
+  width:11px;height:11px;margin-top:-4.5px;
+  border:2px solid rgba(18,102,122,.55);background:var(--rr-void);
+  transform:rotate(45deg) scale(.4);opacity:0;
+  transition:transform .78s cubic-bezier(.28,.08,.22,1),
+             opacity .68s cubic-bezier(.28,.08,.22,1),
+             border-color .68s cubic-bezier(.28,.08,.22,1),
+             box-shadow .68s cubic-bezier(.28,.08,.22,1);
+}
+.ch-road.is-current .road-node{
+  transform:rotate(45deg) scale(1);opacity:1;
+  border-color:var(--rr-red-bright);
+  background:linear-gradient(135deg,var(--rr-red-bright),var(--rr-red) 48%,var(--rr-gold-mid));
+}
+/* one controlled catch-light per diamond as the line reaches it: it rises,
+   holds a brief peak and settles. Delay matches the arrival delay exactly, so
+   the light and the diamond are the same event. This is the ONLY diamond
+   system in the site — the vertical rail has none. */
+@keyframes nodeCatch{
+  0%{box-shadow:0 0 0 0 rgba(255,251,239,0)}
+  42%{box-shadow:0 0 10px 1.5px rgba(255,251,239,.92)}
+  100%{box-shadow:0 0 0 0 rgba(255,251,239,0)}
+}
+.ch-road.is-current .road-node{animation:nodeCatch .82s cubic-bezier(.28,.08,.22,1) both}
+.ch-road.is-current .road-node:nth-child(2){transition-delay:.50s;animation-delay:.50s}   /* line at   0% */
+.ch-road.is-current .road-node:nth-child(3){transition-delay:1.59s;animation-delay:1.59s} /* line at  20% */
+.ch-road.is-current .road-node:nth-child(4){transition-delay:2.05s;animation-delay:2.05s} /* line at  40% */
+.ch-road.is-current .road-node:nth-child(5){transition-delay:2.46s;animation-delay:2.46s} /* line at  60% */
+.ch-road.is-current .road-node:nth-child(6){transition-delay:4.00s;animation-delay:4.00s} /* line at 100% */
+@media (prefers-reduced-motion:reduce){
+  .ch-road.is-current .road-node{animation:none}
+}
+.road-node-end{justify-self:end;width:13px;height:13px;margin-top:-5.5px;background:var(--metal-h)}
+
+/* the headline gets the upper third to itself now that the spine anchors the middle */
+.ch-road .road-head{top:calc(var(--header-h) + 5.5vh)}
+.ch-road .ch-title{font-size:clamp(40px,6vw,104px)}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  FOOTAGE — placement, focal point and treatment per chapter           ║
+   ║  Every clip is cropped by object-position so the subject survives the  ║
+   ║  crop and never sits under the copy. No blur, no filters: the frame    ║
+   ║  stays exactly as sharp as the source.                                 ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* 01 · HOME — 3840x2160/25p, one continuous 13.1s take: two riders working a
+   red-dirt bowl, the near rider filling the right foreground and the second
+   holding the middle distance. The longest clip in the set, so the hero never
+   reads as a short loop. The subject sits right of centre, which leaves the
+   whole left column to RESTON RACING. */
+.hero-film{z-index:0}
+.hero-film video,.hero-film .film-poster{object-position:60% 50%}
+
+/* HOME carries the only overcast sky in the set. Measured against the other
+   six chapters the hero ran ~50% brighter overall and ~30% less saturated —
+   a flat pale band across the top third, which is the one place the frame
+   drifted out of the dark royal register. The hero therefore deepens the
+   atmosphere over that band only: it is fully weighted at the very top, gone
+   by 46%, so the riders and the dirt — everything from mid-frame down — keep
+   exactly the clarity the shared layer gives them. Transparent overlay only:
+   no filter, no blur, nothing applied to the clip itself. */
+.hero-film::before{
+  background:
+    linear-gradient(180deg,
+      rgba(3,26,32,.60) 0%,rgba(4,29,35,.40) 15%,
+      rgba(4,30,36,.17) 31%,rgba(4,30,36,0) 46%),
+    radial-gradient(128% 106% at 52% 46%,
+      rgba(6,38,44,0) 28%,rgba(5,32,37,.34) 58%,
+      rgba(3,22,26,.68) 82%,rgba(2,13,17,.92) 100%);
+}
+
+/* 02 · THE EVENT — 3840x2160/24p, a single carve on an open dune with the
+   plume thrown behind the rear wheel. Near-monochrome and the darkest grade in
+   the set, which is why it sits on the chapter with the largest copy block.
+   The frame is inset 34% from the left, so the crop is pulled left of centre
+   to land the rider in the middle of the remaining panel rather than under the
+   snapshot table. */
+.ch-event .film video,.ch-event .film .film-poster{object-position:38% 50%}
+
+/* 03 · EXPERIENCE — portrait sources in portrait tiles. Both masters are shot
+   vertical (1080x1920 and 2160x3840), so the tiles crop a little width and
+   nothing else: no landscape frame is squeezed into a column.
+   reel-a: a start-line pack pulling away through its own dust — the only
+   footage in the set that shows a field of riders racing.
+   reel-b: two riders holding station at the water's edge, the sharpest and
+   calmest plate available, which is what a rider-zone tile wants. */
+.reel .film video,.reel .film .film-poster{object-position:50% 45%}
+.reel-b .film video,.reel-b .film .film-poster{object-position:50% 40%}
+
+/* the racing plate throws roost across the middle of frame, so THE RACE keeps
+   a deeper, longer left scrim than the shared one: the six-class list always
+   sits on a clean near-black ground while the centre-right of the footage
+   stays completely open. Overlay only — the clip itself is untouched. */
+.ch-race .film-scrim-full{
+  background:
+    linear-gradient(90deg,rgba(2,14,17,.94) 0%,rgba(2,17,21,.86) 20%,
+      rgba(3,22,27,.60) 34%,rgba(4,27,32,.20) 50%,transparent 66%),
+    radial-gradient(120% 90% at 78% 40%,transparent 0%,rgba(4,26,31,.46) 54%,rgba(2,14,17,.92) 100%),
+    linear-gradient(180deg,rgba(2,14,17,.74),transparent 22%),
+    linear-gradient(0deg,rgba(2,14,17,.93),transparent 46%);
+}
+
+/* 04 · THE RACE — 3840x2160/25p, one continuous 7.1s take: a rear wheel
+   digging in at ground level with the roost thrown across frame. Motocross on
+   red dirt, which is what a page listing six competition classes has to show.
+   The machine holds the right of frame for the whole take, so the crop keeps
+   it clear of the six-class list; the race-day panel overlaps its lower half
+   by design and the exhaust, arm and roost stay above it. */
+.ch-race .film video,.ch-race .film .film-poster{object-position:62% 46%}
+
+/* 05 · ROAD / 06 · PARTNERS — atmosphere only. These chapters are designed
+   around their own gradient, so the footage sits well back and the existing
+   grid and tiers read on top of it untouched.
+   ROAD:     a rider carving a bermed corner and arriving at camera — forward
+             momentum, which is the chapter's whole argument.
+   PARTNERS: the paddock. A rider walking in past a loaded truck, static
+             camera, the calmest motion in the set so the five tier rows stay
+             the only thing moving the eye. */
+.film-under{z-index:0;opacity:.20}
+.ch-road .film-under video,.ch-road .film-under .film-poster{object-position:50% 50%}
+.ch-partners .film-under{opacity:.17}
+.ch-partners .film-under video,.ch-partners .film-under .film-poster{object-position:62% 55%}
+
+/* 07 · LOCATION — 3840x2160/25p: the track seen from the grass line, then the
+   aerial descending over the circuit itself. Warm graded earth fills the frame
+   and almost no sky enters it, so the chapter reads as ground, scale and
+   layout rather than action — which is what a location chapter needs, and what
+   keeps COIMBATORE, TAMIL NADU legible in gold across the left. */
+.ch-location .film video,.ch-location .film .film-poster{object-position:55% 50%}
+
+/* the aerial half of that clip fills the lower right with light, warm graded
+   earth — exactly where the four location figures sit. LOCATION therefore
+   carries one corner-weighted layer on top of the shared deep scrim so those
+   figures always have ground under them. Overlay only, and the centre of frame
+   is left completely clear: the footage keeps its own contrast and colour. */
+.ch-location .film-scrim-deep{
+  background:
+    linear-gradient(90deg,rgba(2,17,20,.95) 0%,rgba(3,24,28,.72) 40%,rgba(4,29,34,.28) 72%,rgba(3,22,26,.5) 100%),
+    radial-gradient(76% 64% at 79% 88%,rgba(2,15,19,.60),rgba(2,15,19,0) 76%),
+    linear-gradient(0deg,rgba(2,17,20,.9),transparent 52%);
+}
+
+/* Every clip above is a 4K master except reel-a, which is a native 1080x1920
+   vertical and is only ever shown in a 1080-wide portrait tile. Nothing in the
+   set is upscaled into a frame larger than its own source. */
+
+@media (max-width:900px){
+  /* a 16:9 master cropped into a narrow window loses its subject sideways
+     first, so the focal point moves toward the machine rather than the scene */
+  .hero-film video,.hero-film .film-poster{object-position:66% 50%}
+  .ch-event .film video,.ch-event .film .film-poster{object-position:42% 50%}
+  .ch-race .film video,.ch-race .film .film-poster{object-position:68% 48%}
+  .ch-location .film video,.ch-location .film .film-poster{object-position:52% 52%}
+  .ch-road .film-under video,.ch-road .film-under .film-poster{object-position:50% 46%}
+  .ch-partners .film-under video,.ch-partners .film-under .film-poster{object-position:58% 55%}
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  HERO SPONSOR CREDIT — one horizontal line, not a stacked badge         ║
+   ╚═══════════════════════════════════════════════════════════════════════╝
+   Centred on the viewport axis in the lower hero band, so it shares a vertical
+   line with the scroll chevron directly beneath it and reads as a presented-by
+   footer for the whole frame rather than a tail on the copy column. Small
+   caps, wide tracking, a machined hairline between the partner and its line.
+   Every word is live type; only the symbol is artwork, and the artwork is
+   untouched. */
+.sponsor{
+  position:absolute;z-index:var(--z-content);
+  left:50%;right:auto;transform:translateX(-50%);
+  bottom:clamp(56px,7.4vh,92px);
+  width:max-content;max-width:calc(100% - 2 * var(--gutter-r));
+  display:flex;align-items:center;justify-content:center;
+  gap:clamp(10.7px,1.12vw,18px);
+  pointer-events:none;
+}
+/* the quietest element: it labels the credit, it is not the credit */
+.sponsor-k{
+  font-size:clamp(8px,.64vw,9.6px);font-weight:700;
+  letter-spacing:.34em;text-indent:.34em;white-space:nowrap;
+  color:var(--rr-text-faint);
+  text-shadow:0 1px 3px rgba(0,0,0,.92);
+}
+/* a third of its former height — the mark identifies the partner at a glance
+   and then gets out of the way of RESTON RACING */
+.sponsor-mark{--rj:clamp(32px,2.88vw,45px);margin:0}
+.sponsor-n{
+  font-size:clamp(11.7px,.96vw,14.4px);font-weight:700;
+  letter-spacing:.15em;text-indent:.15em;white-space:nowrap;
+  color:var(--rr-text);
+  text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 12px rgba(2,17,20,.85);
+}
+/* a machined hairline instead of a pipe character */
+.sponsor-div{
+  flex:none;width:1px;height:clamp(12.8px,1.6vh,18px);
+  background:linear-gradient(180deg,rgba(233,186,80,0),var(--rr-red) 45%,rgba(233,186,80,0));
+  margin:0 clamp(1px,.25vw,5px);
+}
+.sponsor-role{
+  font-size:clamp(8px,.64vw,9.6px);font-weight:700;
+  letter-spacing:.24em;text-indent:.24em;white-space:nowrap;
+  color:var(--rr-red);
+  text-shadow:0 1px 3px rgba(0,0,0,.92);
+}
+/* narrow windows tighten the tracking before anything is dropped */
+@media (max-width:1180px){
+  .sponsor{gap:clamp(8px,.85vw,12px)}
+  .sponsor-role{letter-spacing:.17em;text-indent:.17em}
+  .sponsor-n{letter-spacing:.11em;text-indent:.11em}
+}
+/* below 900px the role wraps to its own line rather than disappearing, so the
+   credit stays complete on a phone */
+@media (max-width:900px){
+  .sponsor{
+    bottom:clamp(46px,6vh,72px);gap:9px;flex-wrap:wrap;
+    max-width:calc(100% - 2 * clamp(16px,4vw,44px));
+  }
+  .sponsor-mark{--rj:28px}
+  .sponsor-div{display:none}
+  .sponsor-role{flex-basis:100%;margin-top:5px;letter-spacing:.2em;text-indent:.2em}
+}
+
+/* 07 · LOCATION carries the most saturated warm footage in the set, so its
+   atmosphere is pitched deeper — still a transparent overlay, still no filter
+   on the clip, so the frame keeps its own grade and sharpness. */
+.ch-location .film::before{
+  background:
+    radial-gradient(126% 104% at 52% 46%,
+      rgba(6,38,45,.12) 24%,rgba(5,32,38,.42) 56%,
+      rgba(4,26,30,.70) 82%,rgba(3,19,23,.88) 100%),
+    linear-gradient(180deg,rgba(5,31,37,.44),rgba(5,31,37,.10) 32%);
+}
+
+
+/* ╔═══════════════════════════════════════════════════════════════════════╗
+   ║  PHONE — THE MOBILE PRODUCT                                            ║
+   ║                                                                        ║
+   ║  A phone does not get the desktop composition re-flowed. It gets its   ║
+   ║  own composition, written for it, in its own markup: one <div class=   ║
+   ║  "mob"> per chapter, which is display:none above this breakpoint. The  ║
+   ║  desktop blocks are simply switched off here, so not one desktop rule  ║
+   ║  had to be touched to build this and desktop cannot regress.           ║
+   ║                                                                        ║
+   ║  The model is the same one the desktop uses and the same one that made ║
+   ║  the site feel cinematic: ONE CHAPTER = ONE SCREEN. Nothing scrolls    ║
+   ║  vertically. The footage fills the frame; the type sits in the lower   ║
+   ║  third on a single bottom-weighted ramp; a horizontal card row carries ║
+   ║  whatever the chapter lists. Detail that a reader only wants on demand ║
+   ║  lives in a sheet that rises over the frame — and opens with a         ║
+   ║  checkbox, so the redesign adds no JavaScript at all.                  ║
+   ║                                                                        ║
+   ║  Layout, spacing and the type scale are utility classes generated into ║
+   ║  css/tw.css. This file carries what utilities cannot express: the      ║
+   ║  ramp, the components and the two themes.                              ║
+   ╚═══════════════════════════════════════════════════════════════════════╝ */
+
+/* the mobile composition never exists on desktop */
+.mob{display:none}
+
+@media (max-width:760px),(max-height:520px) and (orientation:landscape){
+
+  /* ── THE DESKTOP COMPOSITION STANDS DOWN ──────────────────────────────── */
+  .ch>.hero-copy,.ch>.scroll-hint,.ch>.sponsor,
+  .ch>.ch-body,.ch>.snapshot,.ch>.side-note,
+  .ch>.race-head,.ch>.classes,.ch>.raceday,
+  .ch>.road-head,.ch>.road-track,.ch>.phases,.ch>.countdown,
+  .ch>.partners-head,.ch>.tiers,.ch>.partners-foot,
+  .ch>.loc-body,.ch>.loc-facts,.ch>.loc-note,
+  .ch>.hero-scrim,.ch>.film-scrim,
+  .exp-copy,.exp-list{display:none}
+
+  /* ── THE FRAME ────────────────────────────────────────────────────────── */
+  /* every chapter's footage fills its screen, edge to edge, with none of the
+     desktop's directional scrims over it — the ramp below is the only thing
+     laid on the picture, and it clears the middle of frame completely */
+  .ch>.film{position:absolute;inset:0;width:auto;height:auto}
+  .ch>.film::after{display:none}
+  /* the atmosphere ring keeps the corners but opens the centre further: on a
+     phone the subject is smaller in frame and the ring was eating it */
+  .ch>.film::before{
+    background:
+      radial-gradient(132% 112% at 50% 42%,
+        rgba(6,38,44,0) 44%,rgba(4,26,31,.30) 74%,rgba(2,14,18,.72) 100%);
+  }
+  /* ROAD and PARTNERS set their footage right back on desktop because their
+     own gradient is the design there. On a phone the picture has to carry the
+     screen, so it comes up — still under the chapter's colour, never over it */
+  .ch-road .film-under{opacity:1}
+  .ch-partners .film-under{opacity:1}
+
+  /* EXPERIENCE is the exception: its two clips are the only portrait masters
+     in the project (1080x1920 and 2160x3840), so on a phone one of them IS
+     the chapter's frame rather than a tile inside it. The second is switched
+     off — one decoder, not two. */
+  .ch-exp .exp-grid{
+    position:absolute;inset:0;display:block;padding:0;height:auto;
+  }
+  .ch-exp .exp-reels{
+    position:absolute;inset:0;display:block;height:auto;gap:0;align-self:auto;
+  }
+  .ch-exp .reel-a{position:absolute;inset:0;transform:none}
+  .ch-exp .reel-b{display:none}
+  .ch-exp .reel::after,.ch-exp .reel figcaption{display:none}
+
+  /* ── THE COMPOSITION ──────────────────────────────────────────────────── */
+  .mob{
+    position:absolute;inset:0;z-index:5;
+    display:flex;flex-direction:column;
+    /* the card row scrolls sideways inside this, nothing scrolls down */
+    overflow:hidden;
+    --gut:20px;
+    --card-bg:rgba(255,255,255,.05);
+    /* the hairline is a rule, not an accent — gold is spent on the eyebrow,
+       the headline's second line and the one key. The only gold edge in the
+       row belongs to the tier that is already taken. */
+    --card-line:rgba(255,255,255,.24);
+    --sheet-bg:linear-gradient(180deg,#062229,#02141a);
+  }
+  /* a short pull under the header so the mark and the key never sit on open
+     sky — the picture is otherwise untouched down to where the copy starts */
+  .mob::before{
+    content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,
+      rgba(2,17,20,.78) 0%,rgba(2,17,20,.32) 9%,rgba(2,17,20,0) 22%);
+  }
+  .mob>*{position:relative;z-index:1}
+  /* THE RAMP IS ANCHORED TO THE COPY, NOT TO THE SCREEN.
+     A ramp pitched at a percentage of the viewport is only correct on the one
+     screen height it was tuned on — on a shorter phone the first line rides
+     up into the open part of the picture and loses its ground. Pinning it to
+     the top of the copy block in pixels means the first line always has the
+     same 104px of ramp above it and the same paper under it, on every phone
+     and in both orientations. Everything above that stays picture. */
+  .mob-body::before{
+    content:'';position:absolute;z-index:-1;pointer-events:none;
+    left:0;right:0;top:-104px;bottom:-420px;
+    background:linear-gradient(180deg,
+      rgba(2,17,20,0) 0px,rgba(2,17,20,.42) 44px,rgba(2,17,20,.80) 82px,
+      rgba(2,15,18,.92) 158px,rgba(1,11,14,.97) 100%);
+  }
+  /* margin-top:auto rather than justify-content:flex-end — same result when
+     the composition fits, but it stays reachable if a very short screen ever
+     has to scroll, which flex-end does not */
+  .mob-body{
+    margin-top:auto;
+    padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));
+  }
+  /* ── THE PARTNER CREDIT ──
+     HOME's foot: one rule, one line, centred and kept clear of the two corner
+     marks. Same wording, same artwork, same order — it just stops floating in
+     the middle of the frame the way the desktop slab did. */
+  .ch-home .mob-body{padding-bottom:18px}
+  .mob-rj{
+    display:flex;align-items:center;justify-content:center;
+    gap:11px;flex-wrap:wrap;
+    padding-top:13px;
+    padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+    padding-left:58px;padding-right:58px;
+    border-top:1px solid rgba(240,200,92,.22);
+  }
+
+  /* ── TYPE ─────────────────────────────────────────────────────────────── */
+  /* one gold tick, one gold line: the chapter says its name once and the
+     accent appears once */
+  .mob-eyebrow{
+    display:flex;align-items:center;gap:10px;
+    font-size:10px;font-weight:700;letter-spacing:.3em;
+    color:var(--rr-red);text-transform:uppercase;
+  }
+  .mob-eyebrow::before{
+    content:'';flex:none;width:22px;height:2px;background:var(--rr-red);
+  }
+  .mob-title{
+    font-size:clamp(36px,11.4vw,50px);line-height:.9;letter-spacing:-.03em;
+    font-style:italic;font-weight:700;text-transform:uppercase;
+    color:var(--rr-text);text-shadow:0 2px 18px rgba(2,17,20,.55);
+  }
+  .mob-title em{font-style:inherit;color:var(--rr-red)}
+  .mob-hero{
+    font-size:clamp(46px,15.2vw,66px);line-height:.86;letter-spacing:-.028em;
+    font-style:italic;font-weight:700;text-transform:uppercase;
+    color:var(--rr-text);text-shadow:0 2px 22px rgba(2,17,20,.65);
+  }
+  /* the wordmark keeps the site's metal, and it is the only place on a phone
+     that gets it */
+  .mob-hero em{
+    font-style:inherit;
+    background:linear-gradient(166deg,
+      var(--rr-red-bright) 0%,var(--rr-red) 13%,var(--rr-gold-mid) 31%,
+      var(--rr-red-bright) 40%,var(--rr-red-ember) 43%,var(--rr-red-bright) 46%,
+      var(--rr-red) 56%,var(--rr-gold-mid) 72%,var(--rr-red-deep) 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 2px 16px rgba(2,17,20,.6));
+  }
+  /* the supporting tone steps up one notch on a phone: these lines sit on
+     picture-backed ground, not on flat paper, and the faint tone measured
+     3.5:1 there */
+  .mob-fine{
+    font-size:9px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;
+    line-height:1.5;color:var(--rr-text-dim);
+  }
+  /* the two prose footnotes are sentences, not labels — set them as sentences
+     so a caveat reads as a caveat instead of shouting in caps */
+  .mob-note{
+    font-family:Arial,Helvetica,sans-serif;
+    font-size:10.5px;line-height:1.55;color:var(--rr-text-dim);
+  }
+  .mob-stat{
+    font-size:clamp(22px,7vw,30px);line-height:1;
+    font-style:italic;font-weight:700;letter-spacing:-.01em;color:var(--rr-red);
+  }
+
+  /* ── THE CARD ROW ─────────────────────────────────────────────────────── */
+  /* Every list in this project — six zones, six classes, five phases, five
+     partner tiers — was a tall stack on a phone, and four tall stacks in a
+     row is what made the site read as a gallery. They are all one component
+     now: a row that runs off the right edge, which is the only affordance a
+     phone needs to say there is more. No boxes, no full borders — a single
+     machined hairline on top of each card, the way a timing board is ruled. */
+  .mob-rail{
+    list-style:none;
+    scroll-padding-left:var(--gut);
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;-ms-overflow-style:none;
+  }
+  .mob-rail::-webkit-scrollbar{display:none}
+  /* a tail so the last card can still snap clear of the right edge */
+  .mob-rail::after{content:'';flex:none;width:4px}
+  .mob-card{
+    background:var(--card-bg);
+    border-top:1px solid var(--card-line);
+  }
+  /* a hairline of gold under the card the pointer is on. It is an inset
+     shadow rather than a border or a pseudo-element, so it draws inside the
+     card's existing box and cannot alter its size, spacing or position, and
+     it is not interactive — the row scrolls and the deck's gestures behave
+     exactly as before. Gated to devices that genuinely have a pointer: a
+     touch screen reports hover:none, so a phone never gets an underline
+     stuck on the last card a finger passed over. */
+  @media (hover:hover) and (pointer:fine){
+    .mob-card{transition:box-shadow .28s var(--ease-drive)}
+    .mob-card:hover{box-shadow:inset 0 -1px 0 var(--rr-red)}
+  }
+  .mob-card b{letter-spacing:.06em}
+  .mob-price{
+    font-size:19px;line-height:1;font-style:italic;font-weight:700;
+    letter-spacing:-.01em;color:var(--rr-red);
+  }
+  .mob-price i{
+    font-style:normal;font-size:9px;letter-spacing:.14em;margin-left:3px;
+    color:var(--rr-text-faint);
+  }
+  .mob-open{display:inline-block;color:var(--rr-text-dim)}
+  .mob-taken{color:var(--rr-red-bright)}
+  .mob-rj-mark{--rj:20px}
+  /* the one tier that is filled keeps the treatment the site already gives it */
+  .mob-card.is-taken{
+    background:rgba(7,37,44,.72);
+    border-top-color:var(--rr-red-bright);
+  }
+
+  /* ── ACTIONS ──────────────────────────────────────────────────────────── */
+  /* one key per screen, and everything else is a link. Three buttons in a
+     column was a form; this is a decision. */
+  .mob-cta{
+    display:inline-flex;align-items:center;justify-content:center;
+    height:48px;padding:0 22px;flex:none;
+    font-size:11.5px;font-weight:700;letter-spacing:.13em;
+    text-transform:uppercase;white-space:nowrap;
+    background:var(--metal-h);color:#07181b;
+    box-shadow:0 10px 26px rgba(1,10,12,.42);
+  }
+  .mob-link{
+    display:inline-flex;align-items:center;min-height:44px;
+    font-size:10.5px;font-weight:700;letter-spacing:.16em;
+    text-transform:uppercase;white-space:nowrap;color:var(--rr-text);
+    text-decoration:underline;text-decoration-thickness:1px;
+    text-underline-offset:5px;text-decoration-color:rgba(240,200,92,.5);
+  }
+  .mob-body>.mob-link{align-self:flex-start}
+
+  /* ── THE DETAIL SHEET ─────────────────────────────────────────────────── */
+  /* the race-day flow and the approval timeline are reference tables. On a
+     phone they are exactly the kind of content that should be one tap away
+     rather than in the way, so they ride up over the frame on demand. The
+     control is a label and the state is a checkbox: no JavaScript, and no
+     way for it to get out of step with the chapter deck. */
+  .mob-sheet-tap{
+    position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;
+    margin:0;padding:0;border:0;
+  }
+  .mob-sheet-btn{
+    align-self:flex-start;min-height:44px;cursor:pointer;
+    color:var(--rr-red-bright);letter-spacing:.2em;
+  }
+  .mob-sheet-btn svg{transition:transform .34s var(--ease-snap)}
+  .mob-sheet-scrim{
+    position:fixed;inset:0;z-index:60;
+    background:rgba(1,10,12,.66);
+    opacity:0;pointer-events:none;
+    transition:opacity .34s var(--ease-drive);
+  }
+  .mob-sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:61;
+    max-height:76vh;display:flex;flex-direction:column;
+    background:var(--sheet-bg);
+    border-top:1px solid rgba(240,200,92,.46);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    transform:translateY(101%);
+    /* out of the tab order and out of the accessibility tree until it is
+       actually open, so a closed sheet is not reachable by any route */
+    visibility:hidden;
+    transition:transform .44s var(--ease-drive),visibility 0s linear .44s;
+  }
+  .mob-sheet ul{list-style:none}
+  .mob-sheet li+li{border-top:1px solid rgba(240,200,92,.16)}
+  /* a timetable, not two ragged columns: the times hold one measure and the
+     entries all start on the same line */
+  .mob-sheet li>em{width:74px}
+  .mob-sheet li>span{flex:1;text-align:left}
+  .mob-sheet-x{
+    display:flex;align-items:center;justify-content:center;
+    width:44px;height:44px;margin-right:-12px;
+    font-size:15px;line-height:1;color:var(--rr-text-dim);cursor:pointer;
+  }
+  .mob-sheet-tap:checked~.mob-sheet-scrim{opacity:1;pointer-events:auto}
+  .mob-sheet-tap:checked~.mob-sheet{
+    transform:none;visibility:visible;transition-delay:0s;
+  }
+  .mob-sheet-tap:checked~.mob-sheet-btn svg{transform:rotate(180deg)}
+  .mob-sheet-tap:focus-visible~.mob-sheet-btn{outline:2px solid var(--rr-red);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){
+    .mob-sheet,.mob-sheet-scrim,.mob-sheet-btn svg{transition:none}
+  }
+
+  /* ── BAND CROPS ───────────────────────────────────────────────────────── */
+  /* a 16:9 master in a portrait frame crops hardest sideways, so each focal
+     point moves onto the machine. Crop position only — nothing is re-encoded,
+     resized or replaced. */
+  .hero-film video,.hero-film .film-poster{object-position:64% 44%}
+  .ch-event .film video,.ch-event .film .film-poster{object-position:47% 46%}
+  .ch-race .film video,.ch-race .film .film-poster{object-position:66% 44%}
+  .ch-location .film video,.ch-location .film .film-poster{object-position:54% 46%}
+  .ch-road .film-under video,.ch-road .film-under .film-poster{object-position:50% 46%}
+  .ch-partners .film-under video,.ch-partners .film-under .film-poster{object-position:58% 48%}
+  .reel-a .film video,.reel-a .film .film-poster{object-position:50% 44%}
+}
+
+/* ── PHONE · LANDSCAPE ─────────────────────────────────────────────────────
+   Short rather than narrow: the display type and the ramp both come down so
+   the frame is not entirely type, and the card row loses a little height. */
+@media (max-height:520px) and (orientation:landscape){
+  .mob-body{padding-bottom:calc(52px + env(safe-area-inset-bottom,0px))}
+  .mob-title{font-size:clamp(28px,6.4vw,38px)}
+  .mob-hero{font-size:clamp(34px,7.6vw,48px)}
+  .mob-body::before{top:-72px;
+    background:linear-gradient(180deg,
+      rgba(2,17,20,0) 0px,rgba(2,17,20,.40) 30px,rgba(2,17,20,.76) 58px,
+      rgba(2,15,18,.92) 112px,rgba(1,11,14,.97) 100%);
+  }
+  .mob-sheet{max-height:88vh}
+  /* one class more than the utility layer, which is how any orientation or
+     size override reaches past a utility without !important */
+  .mob .mob-rail,.mob .mob-sheet-btn{margin-top:13px}
+  .mob .mob-card{padding-top:10px;padding-bottom:10px}
+  .mob .mob-body>p{margin-top:9px}
+  .mob-body{padding-bottom:calc(44px + env(safe-area-inset-bottom,0px))}
+  /* a landscape phone is 844x390: wide and very short. The four location
+     figures run across the width instead of stacking two-up, which is what
+     the extra width is for. */
+  .mob .mob-stats{grid-template-columns:repeat(4,minmax(0,1fr));row-gap:0}
+  .mob .mob-stats .mob-note,.mob .mob-body>.mob-note{margin-top:8px}
+  /* and if a chapter still cannot fit 342px of frame, it scrolls rather than
+     clipping. The ramp is part of the copy block, so it travels with the copy
+     and the relationship between the two cannot drift — which is exactly what
+     made a scrolling phone layout unsafe before. */
+  .mob{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+       overscroll-behavior:contain;
+       /* when it does scroll, the first line has to clear the header */
+       padding-top:calc(var(--header-h) + 8px)}
+}
+
+
+/* the tier row needs its four columns; below ~940px the reserved half-width
+   cannot hold them and the partner name ran past the edge. Same rows, same
+   content — just more of the window. Applies to both themes. */
+@media (min-width:761px) and (max-width:940px) and (min-height:521px){
+  .tier{grid-template-columns:minmax(96px,1fr) minmax(76px,.6fr) minmax(108px,1.7fr) auto;
+        gap:clamp(8px,1.1vw,16px);padding:0 clamp(10px,1.1vw,16px)}
+  /* the featured row also carries the partner lockup, so its description
+     column gives way instead of pushing the lockup off the edge */
+  .tier.is-taken{grid-template-columns:minmax(88px,1fr) minmax(70px,.55fr) minmax(0,1.4fr) auto}
+  .tier-partner{gap:9px}
+  .tier-partner .rj-lit{--rj:28px}
+  .tier-partner b{font-size:10px;letter-spacing:.1em}
+}
+
+/* Below ~855px the PARTNERS headline is the widest single word on the site
+   and it overran its own column into the tier panel by up to 16px. The column
+   cannot grow — the panel owns that space — so the display size comes down
+   just far enough for PARTNERSHIP. to fit. Applies to both themes. */
+@media (min-width:761px) and (max-width:855px) and (min-height:521px){
+  /* the column itself has to clear the panel — the lead paragraph was
+     wrapping to the old width and running its last character underneath the
+     TITLE PARTNER row — and once it is narrower the display size has to come
+     down with it so PARTNERSHIP. still fits inside its own column */
+  .partners-head{width:min(38ch,30vw)}
+  .ch-partners .ch-title{font-size:clamp(33px,4.5vw,43px)}
+}
+
+/* Between 941 and 1090px the tier panel is wide enough for the ordinary rows
+   but not for the featured one, which also carries the partner lockup — the
+   RJ name was being clipped by up to 32px. Only that row is re-proportioned;
+   every other row and every other width is untouched. Applies to both themes. */
+@media (min-width:941px) and (max-width:1090px){
+  .tier.is-taken{grid-template-columns:minmax(104px,1fr) minmax(82px,.58fr) minmax(0,1.5fr) auto}
+  .tier.is-taken .tier-partner{gap:10px}
+  .tier.is-taken .tier-partner .rj-lit{--rj:30px}
+  .tier.is-taken .tier-partner b{font-size:10.5px;letter-spacing:.11em}
+}
